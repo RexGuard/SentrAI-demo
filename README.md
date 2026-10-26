@@ -122,9 +122,9 @@ panel, the demo starts just the agent and the portal.
 
 ## How blocks show up
 
-The agent runs with `CACTAI_FIREWALL=off`, so it changes no firewall rules on the demo laptop. It still
+The agent runs with `SENTRAI_FIREWALL=off`, so it changes no firewall rules on the demo laptop. It still
 keeps the panel's block list in `.demo/agent.json`, and the portal refuses those addresses. To see real
-firewall rules on a Linux lab machine, start with `CACTAI_FIREWALL=auto CACTAI_FIREWALL_ENFORCE=1`
+firewall rules on a Linux lab machine, start with `SENTRAI_FIREWALL=auto SENTRAI_FIREWALL_ENFORCE=1`
 (as root); the attacks' made-up addresses are what get blocked.
 
 ## Layout

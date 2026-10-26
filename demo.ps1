@@ -76,9 +76,9 @@ foreach ($d in @("logs", "agent", "panel", "panel\data")) { New-Item -ItemType D
 Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $State "panel\started")
 
 # Settings below are for this demo only: put them back afterwards so this PowerShell window is unchanged.
-$envNames = @("CACTAI_CONFIG", "CACTAI_RISK_SCOPE", "DEMO_SPEED", "CACTAI_SCOUT_SOURCES", "CACTAI_AGENT_FILE",
-              "CACTAI_COLLECTOR_STATE", "CACTAI_LAB_LOGS", "CACTAI_FIREWALL", "CACTAI_SPINES", "PYTHONUNBUFFERED", "PYTHONUTF8",
-              "CACTAI_DB", "CACTAI_QUARANTINE", "PROTECTED_NETS", "PROTECTED_IPS", "PORTAL_HOST")
+$envNames = @("SENTRAI_CONFIG", "SENTRAI_RISK_SCOPE", "DEMO_SPEED", "SENTRAI_SCOUT_SOURCES", "SENTRAI_AGENT_FILE",
+              "SENTRAI_COLLECTOR_STATE", "SENTRAI_LAB_LOGS", "SENTRAI_FIREWALL", "SENTRAI_SPINES", "PYTHONUNBUFFERED", "PYTHONUTF8",
+              "SENTRAI_DB", "SENTRAI_QUARANTINE", "PROTECTED_NETS", "PROTECTED_IPS", "PORTAL_HOST")
 $savedEnv = @{}
 foreach ($n in $envNames) { $savedEnv[$n] = [Environment]::GetEnvironmentVariable($n, "Process") }
 
@@ -140,20 +140,20 @@ try {
     #    risk score and its own blocks. Its settings are kept in .demo\panel.
     $AllowHttpJoin = [bool]$AllowHttp
     if (-not $Panel) {
-        $env:CACTAI_CONFIG = Join-Path $State "panel\config.json"
-        $env:CACTAI_RISK_SCOPE = "host"
+        $env:SENTRAI_CONFIG = Join-Path $State "panel\config.json"
+        $env:SENTRAI_RISK_SCOPE = "host"
         $env:DEMO_SPEED = "$Speed"
-        $env:CACTAI_SCOUT_SOURCES = Join-Path $State "panel\sources.json"
+        $env:SENTRAI_SCOUT_SOURCES = Join-Path $State "panel\sources.json"
         # The panel's database, machine keys, backups and quarantine also stay in .demo\panel, never
         # in the SentrAI checkout (which may be a real install when -SentrAI points at one).
-        $env:CACTAI_DB = Join-Path $State "panel\data\sentrai.db"
-        $env:CACTAI_QUARANTINE = Join-Path $State "panel\data\quarantine"
+        $env:SENTRAI_DB = Join-Path $State "panel\data\sentrai.db"
+        $env:SENTRAI_QUARANTINE = Join-Path $State "panel\data\quarantine"
         $signIn = Join-Path $State "panel\sign-in.txt"
         if (-not (Test-Path $signIn)) {
             # Makes the panel's settings file (so SentrAI's first-run questions are skipped) and the
             # dashboard's first sign-in (a one-time Owner setup code, or a password on older SentrAI),
             # kept here because it is shown only once.
-            & $pyKit (Join-Path $Mvp "cactai_config.py") admin --email judge@sentrai-demo.local | Set-Content -Encoding utf8 $signIn
+            & $pyKit (Join-Path $Mvp "sentrai_config.py") admin --email judge@sentrai-demo.local | Set-Content -Encoding utf8 $signIn
         }
         $runArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Mvp "run.ps1"), "-Speed", "$Speed")
         if ($PanelOnly) {
@@ -169,12 +169,12 @@ try {
         & powershell @runArgs
         if ($LASTEXITCODE -ne 0) { throw "The panel did not start (see above)." }
         "local" | Set-Content -Encoding ascii (Join-Path $State "panel\started")
-        $port = if ($env:CACTAI_CORE_PORT) { $env:CACTAI_CORE_PORT } else { "8000" }
+        $port = if ($env:SENTRAI_CORE_PORT) { $env:SENTRAI_CORE_PORT } else { "8000" }
         $Panel = "http://127.0.0.1:$port"
         $AllowHttpJoin = $true
         $env:PROTECTED_NETS = $savedEnv["PROTECTED_NETS"]; $env:PROTECTED_IPS = $savedEnv["PROTECTED_IPS"]
         if (-not (Wait-Http "$Panel/health")) { throw "The panel is not answering on $Panel (see its core window)." }
-        $token = (& $pyKit (Join-Path $Mvp "cactai_config.py") token | Select-Object -Last 1).Trim()
+        $token = (& $pyKit (Join-Path $Mvp "sentrai_config.py") token | Select-Object -Last 1).Trim()
         $joined = (Test-Path $AgentFile) -and ((Get-Content -Raw $AgentFile) -match [regex]::Escape("`"$Panel`""))
         if ($PanelOnly -or -not $joined) {
             $body = @{ operator = "demo"; name = $Name } | ConvertTo-Json
@@ -183,7 +183,7 @@ try {
         }
     }
 
-    $env:CACTAI_DB = $savedEnv["CACTAI_DB"]; $env:CACTAI_QUARANTINE = $savedEnv["CACTAI_QUARANTINE"]
+    $env:SENTRAI_DB = $savedEnv["SENTRAI_DB"]; $env:SENTRAI_QUARANTINE = $savedEnv["SENTRAI_QUARANTINE"]
 
     if ($PanelOnly) {
         $lan = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' } | Select-Object -First 1).IPAddress
@@ -201,12 +201,12 @@ try {
     }
 
     # 4. The agent: its own settings, key file and collector place, reading only the portal's logs.
-    $env:CACTAI_CONFIG = Join-Path $State "agent\config.json"
-    $env:CACTAI_AGENT_FILE = $AgentFile
-    $env:CACTAI_COLLECTOR_STATE = Join-Path $State "agent\collector-state.json"
-    $env:CACTAI_SCOUT_SOURCES = Join-Path $State "agent\sources.json"
-    $env:CACTAI_LAB_LOGS = Join-Path $State "logs"
-    if (-not $savedEnv["CACTAI_FIREWALL"]) { $env:CACTAI_FIREWALL = "off" }  # blocks show on the portal; no firewall rules
+    $env:SENTRAI_CONFIG = Join-Path $State "agent\config.json"
+    $env:SENTRAI_AGENT_FILE = $AgentFile
+    $env:SENTRAI_COLLECTOR_STATE = Join-Path $State "agent\collector-state.json"
+    $env:SENTRAI_SCOUT_SOURCES = Join-Path $State "agent\sources.json"
+    $env:SENTRAI_LAB_LOGS = Join-Path $State "logs"
+    if (-not $savedEnv["SENTRAI_FIREWALL"]) { $env:SENTRAI_FIREWALL = "off" }  # blocks show on the portal; no firewall rules
     $env:PYTHONUNBUFFERED = "1"; $env:PYTHONUTF8 = "1"
     $pyAgent = Join-Path $Mvp "lab\.venv\Scripts\python.exe"
     if (-not (Test-Path $pyAgent)) {
@@ -217,7 +217,7 @@ try {
     }
     $agentRun = Join-Path $Kit "agent_run.py"
     if ($Code) {
-        Remove-Item -Force -ErrorAction SilentlyContinue $AgentFile, $env:CACTAI_COLLECTOR_STATE
+        Remove-Item -Force -ErrorAction SilentlyContinue $AgentFile, $env:SENTRAI_COLLECTOR_STATE
         $join = @($agentRun, $SentrAI, "join", "--panel", $Panel, "--code", $Code, "--name", $Name)
         if ($AllowHttpJoin) { $join += "--allow-http" }
         & $pyAgent @join
@@ -227,7 +227,7 @@ try {
     Start-Bg "agent" $pyAgent @("`"$agentRun`"", "`"$SentrAI`"", "run")
 
     # 5. The portal.
-    if ($Tripwires) { $env:CACTAI_SPINES = "1" }
+    if ($Tripwires) { $env:SENTRAI_SPINES = "1" }
     if ($Listen) { $env:PORTAL_HOST = "0.0.0.0" }
     Start-Bg "portal" $pyKit @("-m", "portal")
     if (-not (Wait-Http "http://127.0.0.1:5000/healthz" 20)) { Write-Host "The portal is not answering yet (see .demo\portal.err.log)." -ForegroundColor Yellow }
@@ -235,11 +235,11 @@ try {
     Write-Host ""
     Write-Host "SentrAI demo lab is running." -ForegroundColor Green
     if ((Test-Path (Join-Path $State "panel\started")) -and -not $NoDashboard) {
-        $dport = if ($env:CACTAI_DASHBOARD_PORT) { $env:CACTAI_DASHBOARD_PORT } else { "8501" }
+        $dport = if ($env:SENTRAI_DASHBOARD_PORT) { $env:SENTRAI_DASHBOARD_PORT } else { "8501" }
         Write-Host "  Panel dashboard: http://127.0.0.1:$dport"
         Get-Content (Join-Path $State "panel\sign-in.txt") | ForEach-Object { Write-Host ("  " + $_.Trim()) }
         Write-Host "  (shown on every start; once the Owner account exists, sign in with it. If the code ran out:"
-        Write-Host "   `$env:CACTAI_CONFIG='.demo\panel\config.json'; .\.demo\venv\Scripts\python.exe .demo\SentrAI\mvp\cactai_config.py admin)"
+        Write-Host "   `$env:SENTRAI_CONFIG='.demo\panel\config.json'; .\.demo\venv\Scripts\python.exe .demo\SentrAI\mvp\sentrai_config.py admin)"
     } elseif (-not (Test-Path (Join-Path $State "panel\started"))) {
         Write-Host "  Panel:           $Panel  (dashboard of the panel's machine)"
     }

@@ -18,14 +18,15 @@ Nothing here touches the attacker's machine. The tripwires only sit and wait:
 Each touch is written to ``deception.jsonl``; the collector ships it to core, where the
 rules classify it with confidence 1.0.
 
-Off by default. Turn on with ``CACTAI_SPINES=1`` or ``CACTAI_TRIPWIRES=1`` (``demo.ps1 -Tripwires`` /
-``demo.sh --tripwires``). Tarpit delay: ``CACTAI_TARPIT_S`` (default 3 seconds, max 30).
+Off by default. Turn on with ``SENTRAI_SPINES=1`` or ``SENTRAI_TRIPWIRES=1`` (``demo.ps1 -Tripwires`` /
+``demo.sh --tripwires``). Tarpit delay: ``SENTRAI_TARPIT_S`` (default 3 seconds, max 30).
 """
 from __future__ import annotations
 
-import os
 import threading
 import time
+
+from . import paths
 
 HONEYPOT_PATH = "/admin-legacy"
 
@@ -53,12 +54,12 @@ _TRUE = {"1", "true", "yes", "on"}
 
 
 def enabled_from_env() -> bool:
-    return any(os.environ.get(k, "").strip().lower() in _TRUE for k in ("CACTAI_SPINES", "CACTAI_TRIPWIRES"))
+    return any((paths.env(k) or "").strip().lower() in _TRUE for k in ("SPINES", "TRIPWIRES"))
 
 
 def tarpit_delay_from_env(default: float = 3.0) -> float:
     try:
-        value = float(os.environ.get("CACTAI_TARPIT_S", default))
+        value = float(paths.env("TARPIT_S", default))
     except ValueError:
         value = default
     return max(0.0, min(30.0, value))

@@ -45,7 +45,7 @@ def create_app(start_polling: bool = False,
                spines_on: bool | None = None, tarpit_s: float | None = None) -> Flask:
     app = Flask(__name__)
     app.config["ADMIN_PASSWORD"] = _load_admin_password()
-    # Tripwires (spines.py): off unless CACTAI_SPINES=1 (or CACTAI_TRIPWIRES=1) or spines_on=True.
+    # Tripwires (spines.py): off unless SENTRAI_SPINES=1 (or SENTRAI_TRIPWIRES=1) or spines_on=True.
     spines_on = spines.enabled_from_env() if spines_on is None else spines_on
     tarpit = spines.Tarpit(spines.tarpit_delay_from_env() if tarpit_s is None else tarpit_s)
     app.config["SPINES"] = spines_on

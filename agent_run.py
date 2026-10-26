@@ -30,7 +30,7 @@ def main() -> int:
         if name:
             from collector import collector
 
-            os.environ["CACTAI_HOST"] = name
+            os.environ["SENTRAI_HOST"] = name
             collector.HOST = name
     return agent.main(args)
 
