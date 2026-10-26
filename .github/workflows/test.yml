@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 1 * * *"  # nightly: catches a SentrAI main change that breaks the demo
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Get SentrAI main
+        run: git clone --depth 1 https://github.com/RexGuard/SentrAI .demo/SentrAI
+      - run: python -m pip install -r requirements.txt
+      - name: Tests (portal, attacks, lab page, and the logs against SentrAI's own collector)
+        run: python -m pytest -q tests

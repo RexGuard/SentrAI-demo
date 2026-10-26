@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Test attacks · SentrAI demo lab{% endblock %}
+{% block content %}
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 16px; }
+  .atk { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fbfaf5;
+         display: flex; flex-direction: column; justify-content: space-between; }
+  .atk h3 { margin: 0 0 6px; font-size: 16px; }
+  .atk p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .atk button { margin-top: 12px; align-self: flex-start; }
+  .atk.story { border-color: var(--green); }
+  button[disabled] { opacity: .5; cursor: not-allowed; }
+  pre { background: #10170f; color: #d7ead9; border-radius: 10px; padding: 14px; font-size: 12.5px;
+        max-height: 340px; overflow: auto; white-space: pre-wrap; margin: 14px 0 0; }
+  .status { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px; font-size: 14px; }
+  .pill { border-radius: 20px; padding: 3px 10px; font-size: 12px; background: #e6efe9; color: var(--green-dark); }
+  .pill.red { background: #f6e2e2; color: var(--danger); }
+</style>
+<div class="card">
+  <h2 style="margin-top:0;">Test attacks</h2>
+  <p style="color:var(--muted);margin:0;">Each button sends a short, harmless attack at this portal only
+    (made-up attacker addresses from the documentation ranges, nothing leaves this computer).
+    Keep the SentrAI panel open next to this page and watch it catch each one.</p>
+  <div class="grid">
+    {% for key, (title, what, _) in attacks.items() %}
+    <div class="atk{% if key == 'story' %} story{% endif %}">
+      <div><h3>{{ title }}</h3><p>{{ what }}</p></div>
+      <button type="button" data-attack="{{ key }}">Run</button>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="status">
+    <span id="state" class="pill">idle</span>
+    <span>Blocked on this machine by the agent:</span>
+    <span id="blocked" class="pill">none</span>
+  </div>
+  <pre id="out">Pick an attack above.</pre>
+</div>
+<script>
+  const buttons = document.querySelectorAll("button[data-attack]");
+  const out = document.getElementById("out");
+  const state = document.getElementById("state");
+  const blocked = document.getElementById("blocked");
+  buttons.forEach(b => b.addEventListener("click", async () => {
+    const r = await fetch("/lab/run/" + b.dataset.attack, {method: "POST"});
+    if (!r.ok) { const j = await r.json(); out.textContent = j.error || "could not start"; }
+    refresh();
+  }));
+  async function refresh() {
+    try {
+      const s = await (await fetch("/lab/status")).json();
+      buttons.forEach(b => b.disabled = s.running);
+      state.textContent = s.running ? "running: " + s.title : (s.title ? "finished: " + s.title : "idle");
+      if (s.lines.length) { out.textContent = s.lines.join("\n"); out.scrollTop = out.scrollHeight; }
+      blocked.textContent = s.blocked.length ? s.blocked.join(", ") : (s.agent_seen ? "none" : "agent not running");
+      blocked.className = "pill" + (s.blocked.length ? " red" : "");
+    } catch (e) { state.textContent = "portal not answering"; }
+  }
+  refresh(); setInterval(refresh, 1000);
+</script>
+{% endblock %}
