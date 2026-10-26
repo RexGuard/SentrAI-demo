@@ -12,11 +12,19 @@ import sys
 import threading
 import time
 
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, abort, jsonify, render_template, request
 
 from . import paths
 
 bp = Blueprint("lab", __name__)
+
+
+@bp.before_request
+def _this_machine_only():
+    """The buttons run attacks from here, so only someone at this computer may press them, even when the
+    portal itself is open to the network for the AI attacker machine."""
+    if request.remote_addr not in ("127.0.0.1", "::1"):
+        abort(404)
 
 # button -> (title, what the panel should show, command after "python")
 ATTACKS: dict[str, tuple[str, str, list[str]]] = {

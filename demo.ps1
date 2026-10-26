@@ -19,6 +19,14 @@
   .\demo.ps1 -Panel https://panel.example.com:8000 -Code ABCD-EFGH-JKLM
                                       # lab machine only: join a panel running elsewhere (-AllowHttp
                                       # on a private test network without HTTPS)
+  .\demo.ps1 -PanelOnly -AttackerIp 192.168.1.60
+                                      # three-machine demo, machine 1: only the SentrAI panel. The attacker's
+                                      # address is the one allowed to be blocked (private networks are
+                                      # otherwise never auto-blocked)
+  .\demo.ps1 -Panel http://PANEL:8000 -AllowHttp -Code CODE -Listen
+                                      # machine 2: the website (portal) + agent, open to the network so the
+                                      # AI attacker machine can reach it on port 5000
+                                      # machine 3: python attacker.py --portal http://PORTAL-IP:5000
   .\demo.ps1 -Name web-02             # the lab machine's name on the panel (default aegis-web)
   .\demo.ps1 -Speed 60                # faster panel timers (1 real minute = 1 hour); default real time
   .\demo.ps1 -Fresh                   # start over: new panel data, new join, empty portal logs (keeps
@@ -34,6 +42,9 @@ param(
     [double]$Speed = $(if ($env:DEMO_SPEED) { [double]$env:DEMO_SPEED } else { 1 }),
     [switch]$NoDashboard,
     [switch]$Fresh,
+    [switch]$PanelOnly,
+    [switch]$Listen,
+    [string]$AttackerIp = "",
     [switch]$NoBrowser
 )
 
@@ -67,7 +78,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $State "panel\starte
 # Settings below are for this demo only: put them back afterwards so this PowerShell window is unchanged.
 $envNames = @("CACTAI_CONFIG", "CACTAI_RISK_SCOPE", "DEMO_SPEED", "CACTAI_SCOUT_SOURCES", "CACTAI_AGENT_FILE",
               "CACTAI_COLLECTOR_STATE", "CACTAI_LAB_LOGS", "CACTAI_FIREWALL", "CACTAI_SPINES", "PYTHONUNBUFFERED", "PYTHONUTF8",
-              "CACTAI_DB", "CACTAI_QUARANTINE")
+              "CACTAI_DB", "CACTAI_QUARANTINE", "PROTECTED_NETS", "PROTECTED_IPS", "PORTAL_HOST")
 $savedEnv = @{}
 foreach ($n in $envNames) { $savedEnv[$n] = [Environment]::GetEnvironmentVariable($n, "Process") }
 
@@ -144,8 +155,15 @@ try {
             # kept here because it is shown only once.
             & $pyKit (Join-Path $Mvp "cactai_config.py") admin --email judge@sentrai-demo.local | Set-Content -Encoding utf8 $signIn
         }
-        Write-Host "Starting the SentrAI panel (it opens one window per part) ..."
         $runArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Mvp "run.ps1"), "-Speed", "$Speed")
+        if ($PanelOnly) {
+            $runArgs += @("-CoreBind", "0.0.0.0")  # the website machine's agent reaches the panel over the network
+            # SentrAI never auto-blocks private-network addresses (the "attacker" could be a colleague or a
+            # gateway). In this lab the AI attacker is on the LAN, so allow blocking that one address.
+            if ($AttackerIp) { $env:PROTECTED_NETS = "off"; $env:PROTECTED_IPS = "127.0.0.1,::1,localhost" }
+            else { Write-Host "Note: no -AttackerIp given, so SentrAI will only ask a person to approve blocks from LAN addresses." -ForegroundColor Yellow }
+        }
+        Write-Host "Starting the SentrAI panel (it opens one window per part) ..."
         if ($NoDashboard) { $runArgs += "-NoDashboard" }
         if ($NoBrowser) { $runArgs += "-NoBrowser" }
         & powershell @runArgs
@@ -154,10 +172,11 @@ try {
         $port = if ($env:CACTAI_CORE_PORT) { $env:CACTAI_CORE_PORT } else { "8000" }
         $Panel = "http://127.0.0.1:$port"
         $AllowHttpJoin = $true
+        $env:PROTECTED_NETS = $savedEnv["PROTECTED_NETS"]; $env:PROTECTED_IPS = $savedEnv["PROTECTED_IPS"]
         if (-not (Wait-Http "$Panel/health")) { throw "The panel is not answering on $Panel (see its core window)." }
         $token = (& $pyKit (Join-Path $Mvp "cactai_config.py") token | Select-Object -Last 1).Trim()
         $joined = (Test-Path $AgentFile) -and ((Get-Content -Raw $AgentFile) -match [regex]::Escape("`"$Panel`""))
-        if (-not $joined) {
+        if ($PanelOnly -or -not $joined) {
             $body = @{ operator = "demo"; name = $Name } | ConvertTo-Json
             $Code = (Invoke-RestMethod -Method Post -Uri "$Panel/fleet/join-codes" -Body $body -ContentType "application/json" `
                 -Headers @{ Authorization = "Bearer $token" }).code
@@ -165,6 +184,21 @@ try {
     }
 
     $env:CACTAI_DB = $savedEnv["CACTAI_DB"]; $env:CACTAI_QUARANTINE = $savedEnv["CACTAI_QUARANTINE"]
+
+    if ($PanelOnly) {
+        $lan = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' } | Select-Object -First 1).IPAddress
+        if (-not $lan) { $lan = "THIS-PANEL-IP" }
+        Write-Host ""
+        Write-Host "SentrAI panel is running for the three-machine demo." -ForegroundColor Green
+        Get-Content (Join-Path $State "panel\sign-in.txt") | ForEach-Object { Write-Host ("  " + $_.Trim()) }
+        Write-Host "  On the WEBSITE machine run:"
+        Write-Host "    .\demo.ps1 -Panel http://${lan}:8000 -AllowHttp -Code $Code -Listen"
+        Write-Host "  On the AI ATTACKER machine run:"
+        Write-Host "    python attacker.py --portal http://WEBSITE-MACHINE-IP:5000"
+        if (-not $AttackerIp) { Write-Host "  (restart this with -AttackerIp THE-ATTACKER-MACHINE-IP so SentrAI may block it)" }
+        Write-Host "  The join code works once and lasts 24 hours. Stop with .\stop.ps1"
+        return
+    }
 
     # 4. The agent: its own settings, key file and collector place, reading only the portal's logs.
     $env:CACTAI_CONFIG = Join-Path $State "agent\config.json"
@@ -194,6 +228,7 @@ try {
 
     # 5. The portal.
     if ($Tripwires) { $env:CACTAI_SPINES = "1" }
+    if ($Listen) { $env:PORTAL_HOST = "0.0.0.0" }
     Start-Bg "portal" $pyKit @("-m", "portal")
     if (-not (Wait-Http "http://127.0.0.1:5000/healthz" 20)) { Write-Host "The portal is not answering yet (see .demo\portal.err.log)." -ForegroundColor Yellow }
 
@@ -209,6 +244,10 @@ try {
         Write-Host "  Panel:           $Panel  (dashboard of the panel's machine)"
     }
     Write-Host "  Portal:          http://127.0.0.1:5000        (this machine is `"$Name`" on the panel)"
+    if ($Listen) {
+        $lan = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' } | Select-Object -First 1).IPAddress
+        Write-Host "  Open to the network: http://${lan}:5000  <- point the AI attacker here"
+    }
     Write-Host "  Test attacks:    http://127.0.0.1:5000/lab    or: .\.demo\venv\Scripts\python.exe scenario.py"
     Write-Host "  Stop everything: .\stop.ps1"
     if (-not $NoBrowser) { Start-Process "http://127.0.0.1:5000/lab" }

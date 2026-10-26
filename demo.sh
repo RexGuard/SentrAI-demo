@@ -17,6 +17,14 @@
 #                                      lab machine only: join a panel running elsewhere with a join
 #                                      code from its Machines page (add --allow-http on a private
 #                                      test network without HTTPS)
+#   ./demo.sh --panel-only --attacker-ip 192.168.1.60
+#                                      three-machine demo, machine 1: only the SentrAI panel. The attacker's
+#                                      address is the one allowed to be blocked (private networks are
+#                                      otherwise never auto-blocked)
+#   ./demo.sh --panel https://PANEL:8000 --code CODE --listen
+#                                      machine 2: the website (portal) + agent, open to the network so the
+#                                      AI attacker machine can reach it on port 5000
+#                                      machine 3: python attacker.py --portal http://PORTAL-IP:5000
 #   ./demo.sh --name web-02            the lab machine's name on the panel (default aegis-web)
 #   ./demo.sh --speed 60               faster panel timers (1 real minute = 1 hour); default real time
 #   ./demo.sh --fresh                  start over: new panel data, new join, empty portal logs (keeps the
@@ -37,6 +45,9 @@ CODE=""
 ALLOW_HTTP=0
 NAME="aegis-web"
 TRIPWIRES=0
+PANEL_ONLY=0
+LISTEN_ALL=0
+ATTACKER_IP=""
 SPEED="${DEMO_SPEED:-1}"
 RUN_FLAGS=()
 FRESH=0
@@ -48,10 +59,13 @@ while [ $# -gt 0 ]; do
         --allow-http) ALLOW_HTTP=1; shift ;;
         --name) NAME="$2"; shift 2 ;;
         --tripwires|--spines) TRIPWIRES=1; shift ;;
+        --panel-only) PANEL_ONLY=1; shift ;;
+        --listen) LISTEN_ALL=1; shift ;;
+        --attacker-ip) ATTACKER_IP="$2"; shift 2 ;;
         --speed) SPEED="$2"; shift 2 ;;
         --no-dashboard|--no-browser) RUN_FLAGS+=("$1"); shift ;;
         --fresh) FRESH=1; shift ;;
-        -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $1 (see --help)" >&2; exit 2 ;;
     esac
 done
@@ -128,16 +142,29 @@ if [ -z "$PANEL" ]; then
         # kept here because it is shown only once.
         "$PY_KIT" "$MVP/cactai_config.py" admin --email judge@sentrai-demo.local > "$STATE/panel/sign-in.txt"
     fi
+    BIND=()
+    if [ "$PANEL_ONLY" = 1 ]; then
+        BIND=(--core-bind 0.0.0.0)  # the website machine's agent reaches the panel over the network
+        # SentrAI never auto-blocks private-network addresses (the "attacker" could be a colleague or
+        # a gateway). In this lab the AI attacker is on the LAN, so allow blocking that one address.
+        if [ -n "$ATTACKER_IP" ]; then
+            export PROTECTED_NETS=off
+            export PROTECTED_IPS="127.0.0.1,::1,localhost"
+        else
+            echo "Note: no --attacker-ip given, so SentrAI will only ask a person to approve blocks from LAN addresses." >&2
+        fi
+    fi
     echo "Starting the SentrAI panel ..."
-    "$MVP/run.sh" --speed "$SPEED" ${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"} > "$STATE/panel.log" 2>&1 \
+    "$MVP/run.sh" --speed "$SPEED" ${BIND[@]+"${BIND[@]}"} ${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"} > "$STATE/panel.log" 2>&1 \
         || { cat "$STATE/panel.log"; echo "The panel did not start (see above)." >&2; exit 1; }
     echo "local" > "$STATE/panel/started"
     PANEL="http://127.0.0.1:${CACTAI_CORE_PORT:-8000}"
     ALLOW_HTTP=1
+    unset PROTECTED_NETS PROTECTED_IPS
     wait_http "$PANEL/health" || { echo "The panel is not answering on $PANEL (see $MVP/.run_logs/core.log)." >&2; exit 1; }
     TOKEN="$("$PY_KIT" "$MVP/cactai_config.py" token | tail -n 1)"
     unset CACTAI_CONFIG CACTAI_SCOUT_SOURCES CACTAI_DB CACTAI_QUARANTINE
-    if [ ! -f "$STATE/agent.json" ] || ! grep -q "\"$PANEL\"" "$STATE/agent.json"; then
+    if [ "$PANEL_ONLY" = 1 ] || [ ! -f "$STATE/agent.json" ] || ! grep -q "\"$PANEL\"" "$STATE/agent.json"; then
         CODE="$("$PY_KIT" - "$PANEL" "$TOKEN" "$NAME" <<'EOF'
 import json, sys, urllib.request
 panel, token, name = sys.argv[1:4]
@@ -148,6 +175,22 @@ print(json.load(urllib.request.urlopen(req, timeout=10))["code"])
 EOF
 )"
     fi
+fi
+
+if [ "$PANEL_ONLY" = 1 ]; then
+    LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; LAN_IP="${LAN_IP:-THIS-PANEL-IP}"
+    echo
+    echo "SentrAI panel is running for the three-machine demo."
+    echo "  Dashboard:  http://$LAN_IP:${CACTAI_DASHBOARD_PORT:-8501}   (it listens on this computer only; open it here)"
+    sed 's/^ */  /' "$STATE/panel/sign-in.txt"
+    echo
+    echo "  On the WEBSITE machine run:"
+    echo "    ./demo.sh --panel http://$LAN_IP:${CACTAI_CORE_PORT:-8000} --allow-http --code $CODE --listen"
+    echo "  On the AI ATTACKER machine run:"
+    echo "    python attacker.py --portal http://WEBSITE-MACHINE-IP:5000"
+    [ -n "$ATTACKER_IP" ] || echo "  (restart this with --attacker-ip THE-ATTACKER-MACHINE-IP so SentrAI may block it)"
+    echo "  The join code works once and lasts 24 hours. Stop with ./stop.sh"
+    exit 0
 fi
 
 # 4. The agent: its own settings, key file and collector place, reading only the portal's logs.
@@ -175,6 +218,7 @@ start_bg agent "$PY_AGENT" "$KIT/agent_run.py" "$SENTRAI" run
 
 # 5. The portal.
 [ "$TRIPWIRES" = 1 ] && export CACTAI_SPINES=1
+[ "$LISTEN_ALL" = 1 ] && export PORTAL_HOST=0.0.0.0
 cd "$KIT"
 start_bg portal "$PY_KIT" -m portal
 wait_http "http://127.0.0.1:5000/healthz" 20 || echo "The portal is not answering yet (see .demo/portal.log)." >&2
@@ -190,5 +234,9 @@ else
     echo "  Panel:           $PANEL  (dashboard of the panel's machine)"
 fi
 echo "  Portal:          http://127.0.0.1:5000        (this machine is \"$NAME\" on the panel)"
+if [ "$LISTEN_ALL" = 1 ]; then
+    LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    echo "  Open to the network: http://${LAN_IP:-THIS-MACHINE-IP}:5000  <- point the AI attacker here"
+fi
 echo "  Test attacks:    http://127.0.0.1:5000/lab    or: $PY_KIT scenario.py"
 echo "  Stop everything: ./stop.sh"

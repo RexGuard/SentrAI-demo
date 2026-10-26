@@ -67,6 +67,47 @@ documentation ranges (192.0.2.x, 198.51.100.x, 203.0.113.x), and never run a com
 Run the scripts with the demo's Python (`.demo/venv/bin/python` or `.\.demo\venv\Scripts\python.exe`)
 from this folder. Blocks last 2 hours (SentrAI's default); `--fresh` clears them for the next run.
 
+## The AI intruder (three separate machines)
+
+For the stage version: a **local, unrestricted AI model plays the intruder** against the website, with
+SentrAI guarding it. Three machines, each on its own:
+
+| Machine | Runs | Start it with |
+|---|---|---|
+| 1. **SentrAI panel** | The SentrAI panel and its dashboard (judges watch this) | `./demo.sh --panel-only --attacker-ip ATTACKER-IP` |
+| 2. **Website** (the gateway) | The Aegis portal + SentrAI's agent, open to the network | the line machine 1 prints: `./demo.sh --panel http://PANEL-IP:8000 --allow-http --code CODE --listen` |
+| 3. **AI attacker** | The local model and `attacker.py` | `python attacker.py --portal http://WEBSITE-IP:5000` |
+
+(`demo.ps1` takes the same things as `-PanelOnly -AttackerIp`, `-Panel -AllowHttp -Code -Listen`.) Machine 1
+prints the exact command for machine 2, including its one-time join code. Start them in that order; the
+attacker last.
+
+**The model.** `attacker.py` talks to any OpenAI-compatible endpoint, which local runners provide:
+Ollama (`http://localhost:11434/v1`, the default), LM Studio, vLLM, llama.cpp. Pick the model with
+`--model NAME` and `--model-url URL`. Pick one that supports tool calling (for Ollama, e.g. `llama3.1`,
+`qwen2.5`, `mistral-nemo`). The intruder's instructions are in [`attacker/brief.md`](attacker/brief.md):
+edit them to change its style or goals.
+
+**What the AI can and cannot do.** It gets five moves (look at a page, try a login, search, bulk export, send
+a command to the admin endpoint) and nothing else: no shell, no files, no other URLs
+([`attacker/tools.py`](attacker/tools.py)). The portal runs nothing and holds only fake data. Before it
+starts, the attacker checks that the address answers as *this* demo portal (a marker on `/healthz`) and is a
+private/lab address; anything else is refused. So even an "unrestricted" model can only poke our own lab
+portal, and one that tries other tools just gets "no such tool".
+
+**What judges see.** On the panel: incidents open as the AI guesses passwords, injects the search box and
+tries the admin endpoint; the machine's risk climbs past its threshold; SentrAI blocks the attacker's address.
+On the attacker's terminal: its moves turn into `HTTP 403 [BLOCKED by SentrAI]`, and the model says so in its
+after-action summary.
+
+**Why `--attacker-ip`.** SentrAI never auto-blocks private-network addresses (the "attacker" could be a
+colleague or a gateway), so on a LAN it would only ask a person to approve. `--attacker-ip` turns that
+protection off on the demo panel so the AI machine can be blocked automatically. Use it in the lab only.
+The panel runs over plain http here, so keep all three machines on a private test network.
+
+**One computer, no real AI.** `python attacker.py` on the same machine as everything works the same way, and
+the "Full story" button needs no model at all.
+
 ## Two computers (panel and lab apart)
 
 On the panel's computer, run SentrAI normally and make a join code on its **Machines** page. On the lab
@@ -91,6 +132,7 @@ firewall rules on a Linux lab machine, start with `CACTAI_FIREWALL=auto CACTAI_F
 ```
 demo.sh / demo.ps1     start everything            stop.sh / stop.ps1   stop it
 agent_run.py           starts SentrAI's agent from the SentrAI checkout
+attacker.py, attacker/ the AI intruder (its five moves, its brief, the model loop)
 portal/                the fake Aegis Academy portal (Flask), its /lab page and tripwires
 attacks/               the test attacks (localhost only)
 scenario.py            the full story

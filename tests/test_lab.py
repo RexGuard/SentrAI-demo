@@ -54,3 +54,10 @@ def test_blocks_come_from_the_agent_file(tmp_path):
     f.write_text("not json")
     assert not read_once(f) and blocklist.is_blocked("203.0.113.45", None)  # fail open: keep, never add
     blocklist.update(ips=[])
+
+
+def test_lab_buttons_only_from_this_machine():
+    c = create_app().test_client()
+    assert c.get("/lab", environ_base={"REMOTE_ADDR": "192.168.1.60"}).status_code == 404
+    assert c.post("/lab/run/sqli", environ_base={"REMOTE_ADDR": "192.168.1.60"}).status_code == 404
+    assert c.get("/lab").status_code == 200

@@ -8,6 +8,8 @@ ever executed as a command.
 """
 from __future__ import annotations
 
+import os
+
 from flask import (
     Flask, Response, render_template, request, redirect, url_for, abort
 )
@@ -17,6 +19,7 @@ from .blocklist import blocklist, start_poller
 
 ADMIN_USER = "admin"
 PORT = 5000
+LISTEN = os.environ.get("PORTAL_HOST", "127.0.0.1")  # 0.0.0.0 lets the AI attacker machine reach it
 LOOPBACK = {"127.0.0.1", "::1"}
 
 
@@ -172,7 +175,10 @@ def create_app(start_polling: bool = False,
 
     @app.get("/healthz")
     def healthz():
-        return {"ok": True, "agent_seen": blocklist.agent_seen, "blocked": blocklist.snapshot()["ips"]}
+        # "demo_portal" marks this as the fictional lab target; the AI attacker checks for it and
+        # refuses to attack anything that does not answer with it, so it can only hit our own portal.
+        return {"ok": True, "demo_portal": "sentrai-aegis-lab", "agent_seen": blocklist.agent_seen,
+                "blocked": blocklist.snapshot()["ips"]}
 
     return app
 
@@ -180,13 +186,13 @@ def create_app(start_polling: bool = False,
 def main() -> None:
     app = create_app(start_polling=True)
     print("Aegis Academy Student Portal (SentrAI demo lab)")
-    print(f"  serving  http://127.0.0.1:{PORT}   test attacks: http://127.0.0.1:{PORT}/lab")
+    print(f"  serving  http://{LISTEN}:{PORT}   test attacks (this machine only): http://127.0.0.1:{PORT}/lab")
     print(f"  logs     {paths.logs_dir()}  (the SentrAI agent ships these to the panel)")
     print(f"  blocks   read from {paths.agent_file()} every 2s, fail-open")
     if app.config["SPINES"]:
         tarpit = app.extensions["cactai_tarpit"]
         print(f"  tripwires ON: honeypot {spines.HONEYPOT_PATH}, honeytoken rows, tarpit {tarpit.delay_s:g}s")
-    app.run(host="127.0.0.1", port=PORT, debug=False, use_reloader=False)
+    app.run(host=LISTEN, port=PORT, debug=False, use_reloader=False)
 
 
 if __name__ == "__main__":
