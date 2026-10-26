@@ -109,6 +109,22 @@ fi
 "$STATE/venv/bin/python" -m pip install -q -r "$KIT/requirements.txt"
 PY_KIT="$STATE/venv/bin/python"
 
+# SentrAI renamed its CACTAI_* settings to SENTRAI_* (PR #88; the old names still work there, with a
+# warning, and older checkouts only know the old ones). Each setting is made under the name the
+# checkout in use understands, so the kit works with either and never triggers the warning.
+if [ -f "$MVP/sentrai_config.py" ]; then PFX=SENTRAI; else PFX=CACTAI; fi
+setenv() {  # NAME value   (NAME without prefix, e.g. CONFIG)
+    export "${PFX}_$1=$2"
+}
+unsetenv() { local n; for n in "$@"; do unset "SENTRAI_$n" "CACTAI_$n"; done; }
+getenv() {  # NAME default
+    local s="SENTRAI_$1" c="CACTAI_$1"
+    echo "${!s:-${!c:-$2}}"
+}
+config_script() {  # the settings tool in the SentrAI checkout, under its new or old name
+    if [ -f "$MVP/sentrai_config.py" ]; then echo "$MVP/sentrai_config.py"; else echo "$MVP/cactai_config.py"; fi
+}
+
 PIDS=()
 save_pids() { printf '%s\n' "${PIDS[@]}" > "$STATE/pids"; }
 start_bg() {  # name command...
@@ -130,17 +146,17 @@ wait_http() {  # url [seconds]
 # 3. The panel, unless this machine joins one elsewhere. It runs in host scope so each machine
 #    has its own risk score and its own blocks, with its settings kept in .demo/panel.
 if [ -z "$PANEL" ]; then
-    export CACTAI_CONFIG="$STATE/panel/config.json" CACTAI_RISK_SCOPE=host DEMO_SPEED="$SPEED"
-    export CACTAI_SCOUT_SOURCES="$STATE/panel/sources.json"
+    setenv CONFIG "$STATE/panel/config.json"; setenv RISK_SCOPE host; export DEMO_SPEED="$SPEED"
+    setenv SCOUT_SOURCES "$STATE/panel/sources.json"
     # The panel's database, machine keys, backups and quarantine also stay in .demo/panel, never in
     # the SentrAI checkout (which may be a real install when --sentrai points at one).
-    export CACTAI_DB="$STATE/panel/data/sentrai.db" CACTAI_QUARANTINE="$STATE/panel/data/quarantine"
+    setenv DB "$STATE/panel/data/sentrai.db"; setenv QUARANTINE "$STATE/panel/data/quarantine"
     mkdir -p "$STATE/panel/data"
     if [ ! -f "$STATE/panel/sign-in.txt" ]; then
         # Makes the panel's settings file (so SentrAI's first-run questions are skipped) and the
         # dashboard's first sign-in (a one-time Owner setup code, or a password on older SentrAI),
         # kept here because it is shown only once.
-        "$PY_KIT" "$MVP/cactai_config.py" admin --email judge@sentrai-demo.local > "$STATE/panel/sign-in.txt"
+        "$PY_KIT" "$(config_script)" admin --email judge@sentrai-demo.local > "$STATE/panel/sign-in.txt"
     fi
     BIND=()
     if [ "$PANEL_ONLY" = 1 ]; then
@@ -158,12 +174,12 @@ if [ -z "$PANEL" ]; then
     "$MVP/run.sh" --speed "$SPEED" ${BIND[@]+"${BIND[@]}"} ${RUN_FLAGS[@]+"${RUN_FLAGS[@]}"} > "$STATE/panel.log" 2>&1 \
         || { cat "$STATE/panel.log"; echo "The panel did not start (see above)." >&2; exit 1; }
     echo "local" > "$STATE/panel/started"
-    PANEL="http://127.0.0.1:${CACTAI_CORE_PORT:-8000}"
+    PANEL="http://127.0.0.1:$(getenv CORE_PORT 8000)"
     ALLOW_HTTP=1
     unset PROTECTED_NETS PROTECTED_IPS
     wait_http "$PANEL/health" || { echo "The panel is not answering on $PANEL (see $MVP/.run_logs/core.log)." >&2; exit 1; }
-    TOKEN="$("$PY_KIT" "$MVP/cactai_config.py" token | tail -n 1)"
-    unset CACTAI_CONFIG CACTAI_SCOUT_SOURCES CACTAI_DB CACTAI_QUARANTINE
+    TOKEN="$("$PY_KIT" "$(config_script)" token | tail -n 1)"
+    unsetenv CONFIG SCOUT_SOURCES DB QUARANTINE RISK_SCOPE
     if [ "$PANEL_ONLY" = 1 ] || [ ! -f "$STATE/agent.json" ] || ! grep -q "\"$PANEL\"" "$STATE/agent.json"; then
         CODE="$("$PY_KIT" - "$PANEL" "$TOKEN" "$NAME" <<'EOF'
 import json, sys, urllib.request
@@ -181,11 +197,11 @@ if [ "$PANEL_ONLY" = 1 ]; then
     LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; LAN_IP="${LAN_IP:-THIS-PANEL-IP}"
     echo
     echo "SentrAI panel is running for the three-machine demo."
-    echo "  Dashboard:  http://$LAN_IP:${CACTAI_DASHBOARD_PORT:-8501}   (it listens on this computer only; open it here)"
+    echo "  Dashboard:  http://$LAN_IP:$(getenv DASHBOARD_PORT 8501)   (it listens on this computer only; open it here)"
     sed 's/^ */  /' "$STATE/panel/sign-in.txt"
     echo
     echo "  On the WEBSITE machine run:"
-    echo "    ./demo.sh --panel http://$LAN_IP:${CACTAI_CORE_PORT:-8000} --allow-http --code $CODE --listen"
+    echo "    ./demo.sh --panel http://$LAN_IP:$(getenv CORE_PORT 8000) --allow-http --code $CODE --listen"
     echo "  On the AI ATTACKER machine run:"
     echo "    python attacker.py --portal http://WEBSITE-MACHINE-IP:5000"
     [ -n "$ATTACKER_IP" ] || echo "  (restart this with --attacker-ip THE-ATTACKER-MACHINE-IP so SentrAI may block it)"
@@ -194,12 +210,12 @@ if [ "$PANEL_ONLY" = 1 ]; then
 fi
 
 # 4. The agent: its own settings, key file and collector place, reading only the portal's logs.
-export CACTAI_CONFIG="$STATE/agent/config.json"
-export CACTAI_AGENT_FILE="$STATE/agent.json"
-export CACTAI_COLLECTOR_STATE="$STATE/agent/collector-state.json"
-export CACTAI_SCOUT_SOURCES="$STATE/agent/sources.json"
-export CACTAI_LAB_LOGS="$STATE/logs"
-export CACTAI_FIREWALL="${CACTAI_FIREWALL:-off}"  # blocks show on the portal; no firewall rules on the demo laptop
+setenv CONFIG "$STATE/agent/config.json"
+setenv AGENT_FILE "$STATE/agent.json"
+setenv COLLECTOR_STATE "$STATE/agent/collector-state.json"
+setenv SCOUT_SOURCES "$STATE/agent/sources.json"
+setenv LAB_LOGS "$STATE/logs"
+setenv FIREWALL "$(getenv FIREWALL off)"  # blocks show on the portal; no firewall rules on the demo laptop
 export PYTHONUNBUFFERED=1 PYTHONUTF8=1
 if [ ! -x "$MVP/lab/.venv/bin/python" ]; then
     echo "Creating the agent's venv ..."
@@ -208,7 +224,7 @@ if [ ! -x "$MVP/lab/.venv/bin/python" ]; then
 fi
 PY_AGENT="$MVP/lab/.venv/bin/python"
 if [ -n "$CODE" ]; then
-    rm -f "$STATE/agent.json" "$CACTAI_COLLECTOR_STATE"
+    rm -f "$STATE/agent.json" "$STATE/agent/collector-state.json"
     join=(join --panel "$PANEL" --code "$CODE" --name "$NAME")
     [ "$ALLOW_HTTP" = 1 ] && join+=(--allow-http)
     "$PY_AGENT" "$KIT/agent_run.py" "$SENTRAI" "${join[@]}"
@@ -217,7 +233,7 @@ echo "Starting the agent and the portal ..."
 start_bg agent "$PY_AGENT" "$KIT/agent_run.py" "$SENTRAI" run
 
 # 5. The portal.
-[ "$TRIPWIRES" = 1 ] && export CACTAI_SPINES=1
+[ "$TRIPWIRES" = 1 ] && setenv SPINES 1
 [ "$LISTEN_ALL" = 1 ] && export PORTAL_HOST=0.0.0.0
 cd "$KIT"
 start_bg portal "$PY_KIT" -m portal
@@ -226,12 +242,14 @@ wait_http "http://127.0.0.1:5000/healthz" 20 || echo "The portal is not answerin
 echo
 echo "SentrAI demo lab is running."
 if [ -f "$STATE/panel/started" ] && [[ " ${RUN_FLAGS[*]-} " != *" --no-dashboard "* ]]; then
-    echo "  Panel dashboard: http://127.0.0.1:${CACTAI_DASHBOARD_PORT:-8501}"
+    echo "  Panel dashboard: http://127.0.0.1:$(getenv DASHBOARD_PORT 8501)"
     sed 's/^ */  /' "$STATE/panel/sign-in.txt"
     echo "  (shown on every start; once the Owner account exists, sign in with it. If the code ran out:"
-    echo "   CACTAI_CONFIG=.demo/panel/config.json python3 .demo/SentrAI/mvp/cactai_config.py admin)"
+    echo "   SENTRAI_CONFIG=.demo/panel/config.json python3 .demo/SentrAI/mvp/sentrai_config.py admin)"
+elif [ -f "$STATE/panel/started" ]; then
+    echo "  Panel:           $PANEL  (started without its dashboard)"
 else
-    echo "  Panel:           $PANEL  (dashboard of the panel's machine)"
+    echo "  Panel:           $PANEL  (running elsewhere: open its dashboard there)"
 fi
 echo "  Portal:          http://127.0.0.1:5000        (this machine is \"$NAME\" on the panel)"
 if [ "$LISTEN_ALL" = 1 ]; then

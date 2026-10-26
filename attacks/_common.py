@@ -58,7 +58,7 @@ def make_session(src_ip: str) -> requests.Session:
     s = requests.Session()
     s.headers.update({
         "X-Demo-Src-IP": src_ip,
-        "User-Agent": "cactai-lab-attack/1.0",
+        "User-Agent": "sentrai-lab-attack/1.0",
     })
     return s
 

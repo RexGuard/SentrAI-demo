@@ -30,7 +30,8 @@ def main() -> int:
         if name:
             from collector import collector
 
-            os.environ["CACTAI_HOST"] = name
+            # the setting's name depends on the SentrAI version (renamed in SentrAI PR #88)
+            os.environ["SENTRAI_HOST" if (lab.parent / "sentrai_config.py").is_file() else "CACTAI_HOST"] = name
             collector.HOST = name
     return agent.main(args)
 

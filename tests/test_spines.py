@@ -35,7 +35,7 @@ def _client(on: bool, tarpit_s: float = 0.0):
 
 
 def test_spines_off_by_default(monkeypatch):
-    monkeypatch.delenv("CACTAI_SPINES", raising=False)
+    monkeypatch.delenv("SENTRAI_SPINES", raising=False)
     app = create_app()
     c = app.test_client()
     assert app.config["SPINES"] is False
@@ -47,11 +47,11 @@ def test_spines_off_by_default(monkeypatch):
 
 
 def test_env_switch(monkeypatch):
-    monkeypatch.setenv("CACTAI_SPINES", "1")
-    monkeypatch.setenv("CACTAI_TARPIT_S", "99")
+    monkeypatch.setenv("SENTRAI_SPINES", "1")
+    monkeypatch.setenv("SENTRAI_TARPIT_S", "99")
     app = create_app()
     assert app.config["SPINES"] is True
-    assert app.extensions["cactai_tarpit"].delay_s == 30.0  # capped
+    assert app.extensions["sentrai_tarpit"].delay_s == 30.0  # capped
 
 
 def test_honeypot_page_and_login_never_sign_in():
@@ -111,4 +111,4 @@ def test_tarpit_slows_only_pricked_ips():
     t0 = time.monotonic()
     c.get("/", headers=STAFF)
     assert time.monotonic() - t0 < 0.3
-    assert app.extensions["cactai_tarpit"].is_pricked("203.0.113.99")
+    assert app.extensions["sentrai_tarpit"].is_pricked("203.0.113.99")
