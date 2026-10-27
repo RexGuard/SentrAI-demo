@@ -198,6 +198,11 @@ try {
         $env:PROTECTED_NETS = $savedEnv["PROTECTED_NETS"]; $env:PROTECTED_IPS = $savedEnv["PROTECTED_IPS"]
         if (-not (Wait-Http "$Panel/health")) { throw "The panel is not answering on $Panel (see its core window)." }
         $token = (& $pyKit (Get-ConfigScript $Mvp) token | Select-Object -Last 1).Trim()
+        if (Select-String -Quiet -Pattern "setup code" -Path $signIn) {
+            # The panel's launcher made a new setup code on start, so the saved one no longer works: make
+            # the one to show now (still no Owner, so this only replaces an unused code).
+            & $pyKit (Get-ConfigScript $Mvp) admin | Set-Content -Encoding utf8 $signIn
+        }
         $joined = (Test-Path $AgentFile) -and ((Get-Content -Raw $AgentFile) -match [regex]::Escape("`"$Panel`""))
         if ($PanelOnly -or -not $joined) {
             $body = @{ operator = "demo"; name = $Name } | ConvertTo-Json

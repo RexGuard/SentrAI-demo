@@ -179,6 +179,11 @@ if [ -z "$PANEL" ]; then
     unset PROTECTED_NETS PROTECTED_IPS
     wait_http "$PANEL/health" || { echo "The panel is not answering on $PANEL (see $MVP/.run_logs/core.log)." >&2; exit 1; }
     TOKEN="$("$PY_KIT" "$(config_script)" token | tail -n 1)"
+    if grep -q "setup code" "$STATE/panel/sign-in.txt"; then
+        # The panel's launcher made a new setup code on start, so the saved one no longer works: make
+        # the one to show now (still no Owner, so this only replaces an unused code).
+        "$PY_KIT" "$(config_script)" admin > "$STATE/panel/sign-in.txt"
+    fi
     unsetenv CONFIG SCOUT_SOURCES DB QUARANTINE RISK_SCOPE
     if [ "$PANEL_ONLY" = 1 ] || [ ! -f "$STATE/agent.json" ] || ! grep -q "\"$PANEL\"" "$STATE/agent.json"; then
         CODE="$("$PY_KIT" - "$PANEL" "$TOKEN" "$NAME" <<'EOF'
