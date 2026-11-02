@@ -139,7 +139,7 @@
     if (m.type === "blocked") { line("warn", m.by === "manager"
       ? "[!] connection refused: the site owner blocked 203.0.113.45 from the SentrAI panel"
       : "[!] connection refused: our address 203.0.113.45 is blocked"); }
-    if (m.type === "refused") line("warn", "[!] retry → refused (slowed down " + m.wait + " s)");
+    if (m.type === "refused") line("warn", "[!] retry → refused (sign-ins from 203.0.113.45 stopped for 2 hours)");
     if (m.type === "done") {
       var n = m.tries || 16;
       if (m.by === "nobody") {

@@ -511,7 +511,7 @@
   }
   function setCard(sevClass, tag){ $("card").className = "card " + sevClass; $("tag").textContent = tag; }
   // fix state: "handled" (keep/undo), "kept", "undone" (block it again)
-  var FIX_BLOCKED = "SentrAI already blocked the IP address mentioned above and slowed down sign-ins for 2 hours, so that they cannot keep guessing passwords. Keep the block, and ask the account owner to change their password.";
+  var FIX_BLOCKED = "SentrAI already blocked the IP address mentioned above and stopped sign-ins from that IP address for 2 hours, so that they cannot keep guessing passwords. Keep the block, and ask the account owner to change their password.";
   var FIX_OPEN = "Block the IP address mentioned above for 2 hours, so that they cannot keep guessing passwords, and ask the account owner to change their password.";
   function fixState(st, note){
     $("fixText").textContent = st === "undone" ? FIX_OPEN : FIX_BLOCKED;
@@ -622,14 +622,14 @@
     at(tBlock, function(){
       setRisk(88); setSev("crit");
       setCard("crit", "Critical · Blocked");
-      logln("act", '<b>SentrAI:</b> risk passed 80, blocked '+ATTACKER+' for 2 hours and slowed sign-ins');
+      logln("act", '<b>SentrAI:</b> risk passed 80, stopped sign-ins from '+ATTACKER+' for 2 hours');
       $("site").classList.remove("under"); $("chipText").textContent = "Threat blocked";
       $("mStatus").textContent = "Protected · blocked 1";
       $("attempt").textContent = "⛔ connection refused: this address is blocked";
       send({ type: "blocked" });
     });
-    at(tBlock + 0.9, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +4 s)'); send({ type: "refused", wait: 4 }); });
-    at(tBlock + 1.7, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +8 s)'); send({ type: "refused", wait: 8 }); });
+    at(tBlock + 0.9, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (stopped for 2 hours)'); send({ type: "refused", wait: 4 }); });
+    at(tBlock + 1.7, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (stopped for 2 hours)'); send({ type: "refused", wait: 8 }); });
 
     // Suggested fix appears; owner only has to keep or undo
     var tFix = tBlock + 2.5;
