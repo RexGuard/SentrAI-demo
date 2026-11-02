@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SentrAI Live Demo</title>
+<title>SentrAI Cybersecurity Control Panel · Demo</title>
 <meta name="description" content="One-button demo: watch SentrAI spot, block and explain a password-guessing attack on a fictional school portal.">
 <link rel="icon" href="mark.svg" type="image/svg+xml">
 <style>
@@ -72,14 +72,8 @@
     font-size:14px; border:1px solid transparent; white-space:nowrap; overflow:hidden; }
   .nav svg { width:18px; height:18px; flex:0 0 auto; }
   .nav.on { background:var(--brand-soft); color:var(--ink); border-color:var(--brand); }
-  .feedback { margin-top:auto; border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--surface); }
-  .feedback b { font-size:13px; display:block; margin-bottom:6px; }
-  .feedback textarea { width:100%; min-height:62px; resize:vertical; border-radius:9px; border:1px solid var(--line);
-    background:var(--surface-2); color:var(--ink); padding:8px; font:inherit; font-size:12.5px; }
-  .feedback .row { display:flex; align-items:center; justify-content:space-between; margin-top:7px; gap:8px; }
-  .feedback small { color:var(--faint); font-size:11px; }
   .side.mini { width:66px; }
-  .side.mini .nav span, .side.mini .feedback { display:none; }
+  .side.mini .nav span { display:none; }
   .side.mini .hide { align-self:center; }
   .side.mini .hide svg { transform:scaleX(-1); }
 
@@ -202,22 +196,54 @@
   .ask input { flex:1; min-width:0; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); color:var(--ink);
     padding:10px 12px; font:inherit; font-size:14px; }
 
+  /* ---- handled risks ---- */
+  .handledLine { color:var(--muted); font-size:13.5px; margin:-6px 0 18px; }
+  .handled { margin-top:14px; border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:4px 14px 14px; }
+  .handled summary { cursor:pointer; padding:10px 0 8px; color:var(--muted); font-size:13.5px; }
+  .handled summary b { color:var(--ok); }
+  .tile { display:block; width:100%; text-align:left; cursor:pointer; border:1.5px solid var(--crit); border-radius:14px;
+    background:var(--surface-2); color:var(--ink); padding:12px 14px; }
+  .tile:hover { background:var(--surface-3); }
+  .tile b { display:block; font-size:16px; } .tile small { color:var(--ok); font-size:12.5px; }
+
+  /* ---- dialogs: the backdrop covers the whole page, side menu included ---- */
+  .backdrop { position:fixed; inset:0; z-index:60; background:rgba(8,6,20,.62); backdrop-filter:blur(3px);
+    display:grid; place-items:center; padding:16px; }
+  .modal { position:relative; width:min(560px,100%); max-height:calc(100vh - 32px); overflow:auto; }
+  .modal .x { position:absolute; top:12px; right:12px; width:30px; height:30px; z-index:2; }
+  .modal .card { animation:none; }
+  .sheet { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px 22px; }
+  .sheet h3 { margin:0 0 12px; font-size:19px; }
+  .sheet label { display:block; font-size:13.5px; font-weight:600; margin-top:10px; }
+  .sheet label small { display:block; font-weight:400; color:var(--muted); font-size:12px; }
+  .sheet textarea, .sheet input { width:100%; margin-top:6px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); padding:9px 11px; font:inherit; font-size:13.5px; }
+  .sheet textarea { min-height:76px; resize:vertical; }
+  .sheet .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .sheet .row input { margin-top:0; flex:1; min-width:0; }
+  .sheet .note { color:var(--faint); font-size:12px; margin-top:12px; }
+  .sheet ul { margin:6px 0 0; padding-left:18px; font-size:13.5px; } .sheet .none { color:var(--muted); font-size:13.5px; margin:4px 0 0; }
+  .chatfoot { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; color:var(--faint); font-size:12px; }
+  .linkbtn { background:none; border:0; color:var(--muted); cursor:pointer; display:inline-flex; gap:6px; align-items:center; padding:4px 0; }
+  .linkbtn:hover { color:var(--ink); } .linkbtn svg { width:15px; height:15px; }
+  .side .bottom { margin-top:auto; }
+
   @media (max-width:1100px) { .grid { grid-template-columns:1fr; } }
   @media (max-width:820px) {
     .tabs { display:none; }
     .sevs { grid-template-columns:repeat(2,1fr); }
     main { padding:18px 16px 40px; }
     .site .chip { position:static; display:inline-flex; margin-bottom:10px; }
-    .side { width:66px; } .side .nav span, .side .feedback { display:none; }
+    .side { width:66px; } .side .nav span { display:none; }
     .side.wide { position:fixed; left:0; top:65px; bottom:0; width:236px; z-index:35; background:var(--bg); }
-    .side.wide .nav span { display:inline; } .side.wide .feedback { display:block; }
+    .side.wide .nav span { display:inline; }
   }
 </style>
 </head>
 <body>
 
 <header class="top">
-  <span class="brand"><img src="mark.svg" alt=""><span><b>SentrAI</b><small>Cybersecurity Console</small></span></span>
+  <span class="brand"><img src="mark.svg" alt=""><span><b>SentrAI</b><small>Cybersecurity Control Panel</small></span></span>
   <nav class="tabs"><span class="tab on">Command Center</span><span class="tab">Staff Reports</span></nav>
   <div class="right">
     <button class="iconbtn" id="themeBtn" title="Switch to Light Mode" aria-label="Switch theme"></button>
@@ -238,14 +264,9 @@
     </button>
     <span class="nav link" id="navSentry" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span>Sentry</span></span>
     <span class="nav link on" id="navRespond" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 4l6 6M4 20l9-9M11 6l7 7-3 3-7-7z"/></svg><span>Respond</span></span>
-    <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4a3 3 0 0 1 3 3V14"/></svg><span>How It Works</span></span>
     <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Monitoring</span></span>
     <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Settings</span></span>
-    <form class="feedback" id="feedback">
-      <b>Send Feedback</b>
-      <textarea id="fbText" placeholder="Tell us what you think" aria-label="Your feedback"></textarea>
-      <div class="row"><small id="fbNote">Demo only: nothing is sent.</small><button class="btn primary" type="submit">Send</button></div>
-    </form>
+    <span class="nav link bottom" id="navContact" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span>Contact Us</span></span>
   </aside>
 
   <main>
@@ -266,6 +287,7 @@
       <div class="sevc med quiet" id="sev-med"><div class="l">MEDIUM</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
       <div class="sevc low quiet" id="sev-low"><div class="l">LOW</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
     </div>
+    <p class="handledLine" id="handledLine" hidden>SentrAI already blocked 1 risk on its own, so it is not counted above. It is under "Already handled by SentrAI", where you can undo it if it was a false alarm.</p>
 
     <div class="grid">
       <section>
@@ -290,8 +312,9 @@
       </section>
 
       <section>
-        <p class="col-title">Risk card</p>
+        <p class="col-title">Active risks</p>
         <div class="empty" id="empty">No risks right now. Press <b>Launch simulated attack</b> to start.</div>
+        <div id="activeSlot">
         <article class="card high" id="card" hidden>
           <div class="tag" id="tag">High · Open</div>
           <h3>Brute Force</h3>
@@ -302,18 +325,25 @@
           <div class="watching" id="watching"><i></i>SentrAI is acting on this now…</div>
           <div class="fix" id="fix" hidden>
             <h4>Suggested fix</h4>
-            <p>SentrAI already blocked the IP address mentioned above and slowed down sign-ins for 2 hours, so that they cannot keep guessing passwords. Keep the block, and ask the account owner to change their password.</p>
+            <p id="fixText"></p>
             <div class="acts" id="fixActs">
               <button class="btn primary" id="keep">Keep the block</button>
               <button class="btn" id="undo">Undo the block</button>
+              <button class="btn primary" id="reblock">Block it again</button>
             </div>
             <div class="done" id="fixDone" hidden></div>
           </div>
           <button class="btn talk" id="talk">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
-            Talk to Sentry
+            Talk to Sentry about this
           </button>
         </article>
+        </div>
+
+        <details class="handled" id="handled" open hidden>
+          <summary><b>✓</b> Already handled by SentrAI (1)</summary>
+          <button class="tile" id="tile" type="button"><b>Brute Force</b><small id="tileNote">✓ Blocked by SentrAI just now</small></button>
+        </details>
 
         <div class="logbox">
           <div class="lh">Activity Log</div>
@@ -329,7 +359,7 @@
       <p class="lead">Ask about anything SentrAI has seen, in plain words.</p>
       <div class="chatbox">
         <div class="ctx" id="ctx" hidden>
-          <span class="pill" id="ctxPill"><b>Critical</b>Brute Force on aegis-web</span>
+          <span class="pill" id="ctxPill"><b>Sentry · Talking about</b>Brute Force on aegis-web</span>
           <button class="btn" type="button" id="backToRisk">← Back to the risk</button>
         </div>
         <div class="msgs" id="msgs"></div>
@@ -339,14 +369,42 @@
           <button class="btn primary" type="submit">Send</button>
         </form>
       </div>
+      <div class="chatfoot">
+        <button class="linkbtn" type="button" id="openRemembers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>What Sentry remembers</button>
+        <span>Sentry suggests; nothing happens until you click.</span>
+      </div>
     </section>
 
     <div class="disc">
       <b>This is a simulation.</b> No real system is attacked. The button replays one scripted story on a fictional
       school portal using made-up accounts and documentation-only IP addresses (203.0.113.x and 192.0.2.x, from
-      RFC&nbsp;5737). It sends no network traffic, and the chat answers and feedback form are scripted for the demo.
+      RFC&nbsp;5737). It sends no network traffic, and the chat answers, Contact Us form and What Sentry remembers are scripted for the demo.
     </div>
   </main>
+</div>
+
+<div class="backdrop" id="backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Details" id="modal">
+    <button class="iconbtn x" id="closeModal" aria-label="Close">✕</button>
+    <div id="cardSlot"></div>
+    <div class="sheet" id="remembers" hidden>
+      <h3>What Sentry remembers</h3>
+      <label>Standing instructions<small>How Sentry should answer everyone, in every chat.</small></label>
+      <textarea id="standing" placeholder="e.g. Answer in plain words; our managers are not IT people."></textarea>
+      <div class="row"><button class="btn" type="button" id="saveStanding">Save instructions</button><small id="standingNote" style="color:var(--faint)"></small></div>
+      <label style="margin-top:16px">Things the team told Sentry</label>
+      <p class="none" id="factsNone">Nothing yet. Add one below, or start a chat message with "Remember that".</p>
+      <ul id="facts"></ul>
+      <form class="row" id="factForm"><input id="factInput" placeholder="e.g. aegis-web is our school website" aria-label="Something for Sentry to remember"><button class="btn" type="submit">Remember</button></form>
+      <p class="note">Demo only: this is kept on this page until you reload.</p>
+    </div>
+    <form class="sheet" id="contact" hidden>
+      <h3>Contact Us</h3>
+      <label>How can the SentrAI team help?<small>Questions, problems or feedback about the panel.</small></label>
+      <textarea id="fbText" placeholder="Tell us what you think" aria-label="Your message"></textarea>
+      <div class="row"><button class="btn primary" type="submit">Send</button><small id="fbNote" style="color:var(--faint)">Demo only: nothing is sent.</small></div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -386,12 +444,34 @@
   });
   if (store("sentrai-demo-menu") === "mini") $("side").classList.add("mini");
 
-  /* ---------- feedback form at the bottom of the side menu ---------- */
-  $("feedback").addEventListener("submit", function(e){
+  /* ---------- dialogs (risk card, What Sentry remembers, Contact Us) ---------- */
+  var lastFocus = null;
+  function openModal(which){
+    lastFocus = document.activeElement;
+    $("cardSlot").hidden = which !== "card"; $("remembers").hidden = which !== "remembers"; $("contact").hidden = which !== "contact";
+    $("backdrop").hidden = false; $("closeModal").focus();
+  }
+  function closeModal(){
+    if ($("backdrop").hidden) return;
+    $("backdrop").hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $("closeModal").addEventListener("click", closeModal);
+  $("backdrop").addEventListener("click", function(e){ if (e.target === $("backdrop")) closeModal(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeModal(); });
+
+  $("contact").addEventListener("submit", function(e){
     e.preventDefault();
     if (!$("fbText").value.trim()) { $("fbNote").textContent = "Type something first."; return; }
     $("fbText").value = "";
     $("fbNote").textContent = "Thanks! (Demo only: nothing was sent.)";
+  });
+  $("openRemembers").addEventListener("click", function(){ openModal("remembers"); });
+  $("saveStanding").addEventListener("click", function(){ $("standingNote").textContent = "Saved for this demo."; });
+  $("factForm").addEventListener("submit", function(e){
+    e.preventDefault(); var t = $("factInput").value.trim(); if (!t) return;
+    $("factInput").value = "";
+    var li = document.createElement("li"); li.textContent = t; $("facts").appendChild(li); $("factsNone").hidden = true;
   });
 
   /* ---------- the scripted attack ---------- */
@@ -429,13 +509,41 @@
     });
   }
   function setCard(sevClass, tag){ $("card").className = "card " + sevClass; $("tag").textContent = tag; }
+  // fix state: "handled" (keep/undo), "kept", "undone" (block it again)
+  var FIX_BLOCKED = "SentrAI already blocked the IP address mentioned above and slowed down sign-ins for 2 hours, so that they cannot keep guessing passwords. Keep the block, and ask the account owner to change their password.";
+  var FIX_OPEN = "Block the IP address mentioned above for 2 hours, so that they cannot keep guessing passwords, and ask the account owner to change their password.";
+  function fixState(st, note){
+    $("fixText").textContent = st === "undone" ? FIX_OPEN : FIX_BLOCKED;
+    $("keep").hidden = st !== "handled"; $("undo").hidden = st !== "handled"; $("reblock").hidden = st !== "undone";
+    $("fixDone").hidden = !note; $("fixDone").textContent = note || "";
+  }
+  // A handled risk leaves the active list and goes under "Already handled by SentrAI"
+  function toHandled(){
+    $("cardSlot").appendChild($("card"));
+    setCard("crit", "Critical · Handled by SentrAI");
+    $("empty").hidden = false; $("empty").textContent = "No active risks. SentrAI handled this one on its own.";
+    $("handled").hidden = false; $("handledLine").hidden = false;
+    setSev(null);
+    $("lead").textContent = "Nothing needs you right now. SentrAI blocked 1 risk on its own.";
+  }
+  // Undoing the block puts the risk back on the active list
+  function toActive(){
+    closeModal();
+    $("activeSlot").appendChild($("card"));
+    setCard("crit", "Critical · Open");
+    $("empty").hidden = true; $("handled").hidden = true; $("handledLine").hidden = true;
+    setSev("crit");
+    $("lead").textContent = "1 risk needs you. Start with Critical.";
+  }
 
   function reset(){
     timers.forEach(clearTimeout); timers = []; running = false; clock = 0;
     $("log").innerHTML = "";
+    closeModal(); $("activeSlot").appendChild($("card"));
     $("card").hidden = true; $("empty").hidden = false;
-    $("fix").hidden = true; $("watching").hidden = false;
-    $("fixActs").hidden = false; $("fixDone").hidden = true;
+    $("empty").innerHTML = "No risks right now. Press <b>Launch simulated attack</b> to start.";
+    $("handled").hidden = true; $("handledLine").hidden = true; $("tileNote").textContent = "✓ Blocked by SentrAI just now";
+    $("fix").hidden = true; $("watching").hidden = false; fixState("handled");
     setSev(null); setRisk(4);
     $("lead").textContent = "Nothing needs you right now.";
     $("site").className = "site"; $("chipText").textContent = "Protected";
@@ -502,31 +610,36 @@
       setRisk(22);
       $("watching").hidden = true; $("fix").hidden = false;
       $("site").className = "site"; $("chipText").textContent = "Protected";
-      $("lead").textContent = "SentrAI blocked the attacker. Check the suggested fix.";
-      logln("act", '<b>SentrAI:</b> admin account never broken into · record saved');
+      toHandled();
+      logln("act", '<b>SentrAI:</b> admin account never broken into · risk handled, record saved');
     });
     at(tFix + 0.8, function(){ logln("ok", 'Normal sign-in · staff member 192.0.2.10 (website never went down)'); });
     at(tFix + 1.4, function(){
       running = false;
       $("launch").disabled = false; $("launch").textContent = "▶ Replay attack";
       $("reset").hidden = false;
-      $("hint").textContent = "Done. Press Keep the block, or Talk to Sentry to ask about it.";
+      $("hint").textContent = "Done. Open Brute Force under Already handled by SentrAI to keep or undo the block, or talk to Sentry about it.";
     });
   }
 
+  $("tile").addEventListener("click", function(){ openModal("card"); });
   $("keep").addEventListener("click", function(){
-    $("fixActs").hidden = true; $("fixDone").hidden = false;
-    $("fixDone").textContent = "✓ Block kept. This risk is closed.";
-    setCard("low", "Resolved"); setSev(null); setRisk(8);
-    $("lead").textContent = "Nothing needs you right now.";
-    logln("act", 'Owner kept the block · risk closed');
+    fixState("kept", "✓ Block kept.");
+    $("tileNote").textContent = "✓ Blocked by SentrAI · block kept by you";
+    logln("act", 'Owner kept the block on 203.0.113.45');
   });
   $("undo").addEventListener("click", function(){
-    $("fixActs").hidden = true; $("fixDone").hidden = false;
-    $("fixDone").textContent = "Block removed. SentrAI keeps watching this address and blocks it again if it comes back.";
-    setCard("low", "Resolved · Block Removed"); setSev(null); setRisk(8);
-    $("lead").textContent = "Nothing needs you right now.";
-    logln("ok", 'Owner removed the block on 203.0.113.45');
+    fixState("undone", "Block removed, so this risk is back on your list.");
+    $("mStatus").textContent = "Protected"; $("attempt").textContent = "";
+    toActive();
+    logln("ok", 'Owner removed the block on 203.0.113.45 · risk back on the active list');
+  });
+  $("reblock").addEventListener("click", function(){
+    fixState("handled");
+    $("mStatus").textContent = "Protected · blocked 1";
+    $("tileNote").textContent = "✓ Blocked again by you just now";
+    toHandled();
+    logln("act", 'Owner blocked 203.0.113.45 again · risk handled');
   });
 
   /* ---------- Talk to Sentry (scripted answers) ---------- */
@@ -543,7 +656,7 @@
   }
   function reply(q){
     bubble("me", q);
-    var a = ANSWERS[q] || (riskLoaded ? "In this demo I can only answer the questions above. In the real panel, ask me anything about this risk and I answer in plain words." : "This demo only has scripted answers. Launch the simulated attack, then press Talk to Sentry on the risk card.");
+    var a = ANSWERS[q] || (riskLoaded ? "In this demo I can only answer the questions above. In the real panel, ask me anything about this risk and I answer in plain words." : "This demo only has scripted answers. Launch the simulated attack, then press Talk to Sentry about this on the risk card.");
     setTimeout(function(){ bubble("bot", a); }, 450);
   }
   var riskLoaded = false;
@@ -563,16 +676,24 @@
     });
   }
   function openSentry(withRisk){
+    closeModal();
     if (withRisk && !riskLoaded) {
+      // Like the panel: a new chat about this risk, with the question asked for you
       riskLoaded = true;
+      $("msgs").innerHTML = ""; $("quick").innerHTML = "";
       $("ctx").hidden = false;
-      $("ctxPill").className = "pill " + ($("card").classList.contains("low") ? "low" : "crit");
-      $("ctxPill").querySelector("b").textContent = $("tag").textContent;
+      $("ctxPill").className = "pill crit";
       $("askInput").placeholder = "Ask Sentry about this risk";
-      bubble("bot", "Hi, I'm Sentry. I've loaded the Brute Force risk on aegis-web. Someone kept guessing the password for your admin account, and SentrAI blocked them before they got in. What would you like to know?");
-      quick(Object.keys(ANSWERS));
+      bubble("me", "Tell me about Brute Force on aegis-web: what happened, how serious is it, and what should I do?");
+      var blocked = $("reblock").hidden;
+      setTimeout(function(){
+        bubble("bot", blocked
+          ? "Someone at 203.0.113.45 kept guessing the password for your admin account on aegis-web. That is serious, because one right guess would let them in, but SentrAI blocked them for 2 hours before any guess worked. What to do: keep the block, and ask whoever uses the admin account to change its password."
+          : "Someone at 203.0.113.45 kept guessing the password for your admin account on aegis-web. That is serious, because one right guess would let them in, and right now nothing is blocking them. What to do: press Block it again on the risk card, then ask whoever uses the admin account to change its password.");
+        quick(Object.keys(ANSWERS));
+      }, 500);
     } else if (!$("msgs").children.length) {
-      bubble("bot", "Hi, I'm Sentry. Ask me about anything SentrAI has seen. To talk about one risk, press Talk to Sentry on its card.");
+      bubble("bot", "Hi, I'm Sentry. Ask me about anything SentrAI has seen. To talk about one risk, press Talk to Sentry about this on its card.");
     }
     show("chat"); $("askInput").focus();
   }
@@ -583,7 +704,7 @@
   }
   $("talk").addEventListener("click", function(){ openSentry(true); });
   $("backToRisk").addEventListener("click", function(){ show("respond"); });
-  [["navSentry", function(){ openSentry(false); }], ["navRespond", function(){ show("respond"); }]].forEach(function(n){
+  [["navSentry", function(){ openSentry(false); }], ["navRespond", function(){ show("respond"); }], ["navContact", function(){ openModal("contact"); }]].forEach(function(n){
     $(n[0]).addEventListener("click", n[1]);
     $(n[0]).addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); n[1](); } });
   });
