@@ -29,15 +29,20 @@ theme and menu choice are remembered in the browser.
 `attack.html` is the attacker's side, and it attacks the real panel's public demo copy
 (https://rexguard.github.io/SentrAI/demo-copy/#/command):
 
-1. Open the demo copy, then the attacker page, in the **same browser** (two windows, or one on the projector).
-   The attacker page says "Connected to the SentrAI panel" when it finds it.
+1. Open the demo copy and the attacker page, in the same browser **or on two different devices** (say the panel on
+   the projector laptop and the attacker on a phone). The attacker page says "Connected to the SentrAI panel" when it
+   finds it; across devices this can take up to 5 seconds.
 2. Press **Launch simulated attack**. A Critical **Brute Force** risk appears in the Command Center after a few
    seconds. SentrAI does **not** block it on its own here, so the attacker keeps trying.
 3. Open it and press **Do the suggested fix**, as a manager would. The attacker's terminal shows it being blocked
    and giving up. (**Not a threat** closes it without blocking.)
 
-The pages talk only inside the browser (BroadcastChannel, with a localStorage fallback); nothing goes over the
-network. `index.html` (this folder) is the self-contained one-page version and no longer answers the attacker page.
+In one browser the pages talk through BroadcastChannel (localStorage fallback). Between devices they use the free
+public relay ntfy.sh, on the topic `sentrai-demo-<room>`. The room is `solid10` unless you type another one on the
+attacker page (it then shows the panel link with `?room=...`; open that link on the panel device). Only a few small
+state messages go over the relay per run (no passwords, no personal data; the attacker page plays the tries itself),
+which keeps well under ntfy.sh's free limits. Both devices need internet. Anyone who knows the room can send to it,
+so use your own room if you are worried about someone pressing Launch during the talk. `index.html` (this folder) is the self-contained one-page version and no longer answers the attacker page.
 
 ## Online link
 

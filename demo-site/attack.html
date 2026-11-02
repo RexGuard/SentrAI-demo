@@ -30,6 +30,10 @@
   .term .th b { margin-left:8px; font-weight:500; font-size:12.5px; color:var(--muted); font-family:var(--mono); }
   .out { font-family:var(--mono); font-size:13px; line-height:1.6; padding:14px 16px; height:min(460px, 60vh); overflow:auto; white-space:pre-wrap; }
   .out .p { color:var(--green); } .out .bad { color:var(--red); } .out .warn { color:var(--amber); } .out .dim { color:var(--faint); }
+  .room { font-size:13px; color:var(--muted); margin:-4px 0 14px; overflow-wrap:anywhere; }
+  .room input { width:9em; background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:8px;
+    padding:4px 8px; font:inherit; font-family:var(--mono); }
+  .room a { color:var(--ink); }
   .note { margin-top:14px; color:var(--faint); font-size:12.5px; border:1px dashed var(--line); border-radius:10px; padding:10px 12px; }
   .note b { color:var(--muted); }
 </style>
@@ -42,18 +46,21 @@
   <div class="bar">
     <button class="go" id="go">▶ Launch simulated attack</button>
     <button id="reset">Reset</button>
-    <a class="btn" href="https://rexguard.github.io/SentrAI/demo-copy/#/command" target="sentrai-panel">Open the SentrAI panel ↗</a>
-    <span class="link" id="link"><i></i><span id="linkText">Looking for the SentrAI window…</span></span>
+    <a class="btn" id="panelLink" href="https://rexguard.github.io/SentrAI/demo-copy/#/command" target="sentrai-panel">Open the SentrAI panel ↗</a>
+    <span class="link" id="link"><i></i><span id="linkText">Looking for the SentrAI panel…</span></span>
   </div>
+
+  <p class="room">Room <input id="room" maxlength="32" spellcheck="false" aria-label="Room code"> · open the panel on any
+    device with <a id="panelUrl" href="#" target="sentrai-panel"></a></p>
 
   <div class="term">
     <div class="th"><span></span><span></span><span></span><b>attacker@203.0.113.45 ~</b></div>
     <div class="out" id="out"></div>
   </div>
 
-  <p class="note"><b>This is a simulation.</b> This page attacks nothing and sends no network traffic. It only tells the
-    SentrAI panel (the demo copy, open in this same browser) to play the scripted attack, and shows the attacker's side
-    of it.
+  <p class="note"><b>This is a simulation.</b> This page attacks nothing. It only tells the SentrAI panel (the demo copy,
+    in this browser or on another device with the same room) to play the scripted attack, and shows the attacker's side
+    of it. Between devices the two pages pass a few small messages through the public ntfy.sh relay.
     Addresses are documentation-only (RFC&nbsp;5737).</p>
 </div>
 
@@ -76,24 +83,57 @@
   // Same channel as the SentrAI window (index.html)
   var bc = null, seen = {};
   try { bc = new BroadcastChannel("sentrai-demo"); } catch(e) {}
+  // Cross-device relay (same as the panel, see mvp/web/app/src/lib/demo.ts): a public ntfy.sh topic per room.
+  var RELAY = "https://ntfy.sh/", PANEL = "https://rexguard.github.io/SentrAI/demo-copy/", es = null, topic = "";
+  function clean(v){ return String(v || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32); }
+  function startRelay(room){
+    room = clean(room) || "solid10";
+    try { localStorage.setItem("sentrai-demo-room", room); } catch(e) {}
+    $("room").value = room; topic = "sentrai-demo-" + room;
+    var url = PANEL + (room === "solid10" ? "" : "?room=" + room) + "#/command";
+    $("panelLink").href = url; $("panelUrl").href = url; $("panelUrl").textContent = url.replace("https://", "");
+    if (es) { try { es.close(); } catch(e) {} es = null; }
+    if (typeof EventSource === "undefined") return;
+    try {
+      es = new EventSource(RELAY + topic + "/sse");
+      es.onmessage = function(e){
+        try { var n = JSON.parse(e.data); if (n.event === "message" && n.message) onMsg(JSON.parse(n.message), true); } catch(err) {}
+      };
+    } catch(e) {}
+  }
   function send(msg){
     msg.id = Date.now() + "-" + Math.random();
+    seen[msg.id] = 1;
     if (bc) { try { bc.postMessage(msg); } catch(e) {} }
     try { localStorage.setItem("sentrai-demo-msg", JSON.stringify(msg)); } catch(e) {}
+    if (topic) { try { fetch(RELAY + topic, { method: "POST", body: JSON.stringify(msg) }).catch(function(){}); } catch(e) {} }
+  }
+
+  // Over the relay the panel does not send each try (rate limits), so this page plays them on the panel's schedule.
+  var WORDS = ["password","admin123","letmein","qwerty","P@ssw0rd","welcome1","aegis2024","changeme","root","12345678","student","admin"];
+  var ghost = null, ghostN = 0;
+  function stopGhost(){ if (ghost) clearTimeout(ghost); ghost = null; }
+  function ghostTry(){
+    ghostN += 1;
+    line("bad", "[-] try " + ("0" + ghostN).slice(-2) + "  admin:" + WORDS[(ghostN - 1) % WORDS.length] + "  → 401 wrong password");
+    ghost = ghostN < 80 ? setTimeout(ghostTry, ghostN < 12 ? 450 : 1500) : null;
   }
   function setLinked(on){
     linked = on;
     $("link").classList.toggle("on", on);
-    $("linkText").textContent = on ? "Connected to the SentrAI panel" : "SentrAI panel not found: open it in this browser first";
+    $("linkText").textContent = on ? "Connected to the SentrAI panel" : "SentrAI panel not found: open it (same room) first";
   }
-  function onMsg(m){
+  function onMsg(m, viaRelay){
     if (!m || !m.type || seen[m.id]) return;
     seen[m.id] = 1;
+    if (m.type === "blocked" || m.type === "done" || m.type === "reset-done") stopGhost();
     if (m.type === "here") { setLinked(true); $("go").disabled = !!m.running; }
     if (m.type === "started") {
       setLinked(true); $("go").disabled = true; out.innerHTML = "";
       line("p", "$ guess-passwords --target aegis-web --user admin --wordlist common.txt");
       line("dim", "[*] starting password guessing on /login …");
+      stopGhost(); ghostN = 0;
+      if (viaRelay) ghost = setTimeout(ghostTry, 600);
     }
     if (m.type === "attempt") line("bad", "[-] try " + ("0" + m.n).slice(-2) + "  admin:" + m.pw + "  → 401 wrong password");
     if (m.type === "blocked") { line("warn", m.by === "manager"
@@ -120,14 +160,18 @@
 
   function ping(){ setLinked(false); send({ type: "hello" }); }
   $("go").addEventListener("click", function(){
-    if (!linked) { ping(); line("warn", "[!] Open the SentrAI panel in this browser first, then press Launch again."); return; }
+    if (!linked) { ping(); line("warn", "[!] Open the SentrAI panel first (this browser or another device, same room), then press Launch again."); return; }
     send({ type: "launch" });
   });
-  $("reset").addEventListener("click", function(){ send({ type: "reset" }); $("go").disabled = false; $("go").textContent = "▶ Launch simulated attack"; idle(); });
+  $("room").addEventListener("change", function(){ startRelay($("room").value); ping(); });
+  $("reset").addEventListener("click", function(){ stopGhost(); send({ type: "reset" }); $("go").disabled = false; $("go").textContent = "▶ Launch simulated attack"; idle(); });
 
+  var q = new URLSearchParams(location.search).get("room"), saved = null;
+  try { saved = localStorage.getItem("sentrai-demo-room"); } catch(e) {}
+  startRelay(q || saved);
   idle();
   ping();
-  pingTimer = setInterval(function(){ if (!linked) send({ type: "hello" }); }, 2000);
+  pingTimer = setInterval(function(){ if (!linked) send({ type: "hello" }); }, 5000);
 })();
 </script>
 </body>
