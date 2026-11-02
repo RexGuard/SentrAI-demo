@@ -14,8 +14,9 @@ Dark Mode):
    (there is no Auto Mode switch: SentrAI always acts) and slows every retry.
 3. **Suggested fix** — the card shows the vetted fix wording, with
    *Keep the block* / *Undo the block*. The site never went down.
-4. **Talk to Sentry** — the button on the card opens a chat with scripted,
-   plain-word answers about this risk.
+4. **Talk to Sentry** — the button on the card takes you to the main Sentry
+   chat box with this risk loaded, where scripted plain-word answers explain it.
+   *Back to the risk* (or Respond in the side menu) returns to the card.
 
 The side menu hides with the button inside it, and the feedback form at its
 bottom is a demo stub (nothing is sent). The theme and menu choice are
