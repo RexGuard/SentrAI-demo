@@ -279,7 +279,6 @@
     <div class="cta">
       <button class="btn primary big" id="launch">▶ Launch simulated attack</button>
       <button class="btn" id="reset" hidden>Reset demo</button>
-      <a class="btn" id="openAttacker" href="attack.html" target="sentrai-attacker" title="Open a separate attacker window that sends the attack here">Open attacker window ↗</a>
       <span class="hint" id="hint">Press to watch a password-guessing attack hit the demo site, and watch SentrAI handle it.</span>
     </div>
 
@@ -555,11 +554,9 @@
     if (msg.type === "reset") reset();
     if (msg.type === "hello") send({ type: "here", running: running });
   }
-  if (bc) bc.onmessage = function(e){ onMsg(e.data); };
-  window.addEventListener("storage", function(e){
-    if (e.key !== "sentrai-demo-msg" || !e.newValue) return;
-    try { onMsg(JSON.parse(e.newValue)); } catch(err) {}
-  });
+  // The attacker window (attack.html) now drives the SentrAI panel's demo copy instead, so this page no longer
+  // answers it (two pages answering would play the attack twice). Its own button still works on its own.
+  void onMsg;
 
   function reset(){
     timers.forEach(clearTimeout); timers = []; running = false; clock = 0;

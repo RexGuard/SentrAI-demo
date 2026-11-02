@@ -24,15 +24,20 @@ The side menu hides with the button inside it. **Contact Us** at its bottom and
 covers the whole page; both are demo stubs (nothing is sent or saved). The
 theme and menu choice are remembered in the browser.
 
-## Two-window mode (attacker + SentrAI)
+## Attacker window + the SentrAI panel (demo copy)
 
-`attack.html` is the attacker's side. Open the SentrAI page (`index.html`) and
-then `attack.html` in the **same browser** (two windows, or one on the
-projector). Pressing **Launch simulated attack** on the attacker page plays
-the attack in the SentrAI window, and the attacker terminal shows its tries
-being refused. The SentrAI page also has an **Open attacker window** button.
-The two pages talk through the browser only (BroadcastChannel, with a
-localStorage fallback); nothing goes over the network.
+`attack.html` is the attacker's side, and it attacks the real panel's public demo copy
+(https://rexguard.github.io/SentrAI/demo-copy/#/command):
+
+1. Open the demo copy, then the attacker page, in the **same browser** (two windows, or one on the projector).
+   The attacker page says "Connected to the SentrAI panel" when it finds it.
+2. Press **Launch simulated attack**. A Critical **Brute Force** risk appears in the Command Center after a few
+   seconds. SentrAI does **not** block it on its own here, so the attacker keeps trying.
+3. Open it and press **Do the suggested fix**, as a manager would. The attacker's terminal shows it being blocked
+   and giving up. (**Not a threat** closes it without blocking.)
+
+The pages talk only inside the browser (BroadcastChannel, with a localStorage fallback); nothing goes over the
+network. `index.html` (this folder) is the self-contained one-page version and no longer answers the attacker page.
 
 ## Online link
 
