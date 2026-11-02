@@ -94,6 +94,7 @@
   .btn:disabled { opacity:.55; cursor:default; box-shadow:none; }
   .btn svg { width:16px; height:16px; }
   .hint { color:var(--faint); font-size:13px; }
+  a.btn { text-decoration:none; }
 
   /* ---- severity cards ---- */
   .sevs { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
@@ -278,6 +279,7 @@
     <div class="cta">
       <button class="btn primary big" id="launch">▶ Launch simulated attack</button>
       <button class="btn" id="reset" hidden>Reset demo</button>
+      <a class="btn" id="openAttacker" href="attack.html" target="sentrai-attacker" title="Open a separate attacker window that sends the attack here">Open attacker window ↗</a>
       <span class="hint" id="hint">Press to watch a password-guessing attack hit the demo site, and watch SentrAI handle it.</span>
     </div>
 
@@ -536,8 +538,32 @@
     $("lead").textContent = "1 risk needs you. Start with Critical.";
   }
 
+  /* ---------- link to the attacker window (attack.html), same browser only ---------- */
+  var bc = null;
+  try { bc = new BroadcastChannel("sentrai-demo"); } catch(e) {}
+  // Each message goes out twice (BroadcastChannel, and localStorage for file:// pages); ids drop the repeat.
+  var seen = {};
+  function send(msg){
+    msg.id = Date.now() + "-" + Math.random();
+    if (bc) { try { bc.postMessage(msg); } catch(e) {} }
+    try { localStorage.setItem("sentrai-demo-msg", JSON.stringify(msg)); } catch(e) {}
+  }
+  function onMsg(msg){
+    if (!msg || !msg.type || seen[msg.id]) return;
+    seen[msg.id] = 1;
+    if (msg.type === "launch") { show("respond"); if (!running) run(); }
+    if (msg.type === "reset") reset();
+    if (msg.type === "hello") send({ type: "here", running: running });
+  }
+  if (bc) bc.onmessage = function(e){ onMsg(e.data); };
+  window.addEventListener("storage", function(e){
+    if (e.key !== "sentrai-demo-msg" || !e.newValue) return;
+    try { onMsg(JSON.parse(e.newValue)); } catch(err) {}
+  });
+
   function reset(){
     timers.forEach(clearTimeout); timers = []; running = false; clock = 0;
+    send({ type: "reset-done" });
     $("log").innerHTML = "";
     closeModal(); $("activeSlot").appendChild($("card"));
     $("card").hidden = true; $("empty").hidden = false;
@@ -557,6 +583,7 @@
   function run(){
     if (running) return;
     reset(); running = true;
+    send({ type: "started" });
     $("launch").disabled = true; $("launch").textContent = "● Simulation running…";
     $("hint").textContent = "Someone is trying to guess the admin password. Watch the risk card on the right.";
 
@@ -569,6 +596,7 @@
         $("pw").value = "•".repeat(5 + n%6);
         $("attempt").textContent = '✗ wrong password ("'+WRONG[n]+'"), attempt '+(n+1);
         logln("bad", 'Sign-in failed for <b>admin</b> · from '+ATTACKER);
+        send({ type: "attempt", n: n + 1, pw: WRONG[n] });
         if (n===1) { $("site").classList.add("under"); $("chipText").textContent = "Under attack"; }
         setRisk(8 + n*4.4);
       });
@@ -586,6 +614,7 @@
     for (var j=0;j<4;j++) (function(n){
       at(tSpot + 1.6 + n*0.45, function(){
         logln("bad", 'Sign-in failed for <b>admin</b> · from '+ATTACKER);
+        send({ type: "attempt", n: 13 + n, pw: WRONG[(n+6)%12] });
         setRisk(68 + n*5);
         $("attempt").textContent = '✗ wrong password, attempt '+(13+n)+', still trying…';
       });
@@ -600,9 +629,10 @@
       $("site").classList.remove("under"); $("chipText").textContent = "Threat blocked";
       $("mStatus").textContent = "Protected · blocked 1";
       $("attempt").textContent = "⛔ connection refused: this address is blocked";
+      send({ type: "blocked" });
     });
-    at(tBlock + 0.9, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +4 s)'); });
-    at(tBlock + 1.7, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +8 s)'); });
+    at(tBlock + 0.9, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +4 s)'); send({ type: "refused", wait: 4 }); });
+    at(tBlock + 1.7, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +8 s)'); send({ type: "refused", wait: 8 }); });
 
     // Suggested fix appears; owner only has to keep or undo
     var tFix = tBlock + 2.5;
@@ -616,6 +646,7 @@
     at(tFix + 0.8, function(){ logln("ok", 'Normal sign-in · staff member 192.0.2.10 (website never went down)'); });
     at(tFix + 1.4, function(){
       running = false;
+      send({ type: "done" });
       $("launch").disabled = false; $("launch").textContent = "▶ Replay attack";
       $("reset").hidden = false;
       $("hint").textContent = "Done. Open Brute Force under Already handled by SentrAI to keep or undo the block, or talk to Sentry about it.";
