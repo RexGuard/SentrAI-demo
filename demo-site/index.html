@@ -4,477 +4,564 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SentrAI Live Demo</title>
-<meta name="description" content="One-button demo: watch SentrAI detect, explain, block and resolve a password-guessing attack on a fictional school portal.">
+<meta name="description" content="One-button demo: watch SentrAI spot, block and explain a password-guessing attack on a fictional school portal.">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
 <style>
+  /* ---- theme tokens: dark is the default, light mirrors the panel's Light Mode ---- */
   :root {
-    --bg:#0c1118; --panel:#111a24; --panel-2:#0e151e; --line:#1f2d3a;
-    --ink:#e8eef4; --muted:#8aa0b2; --faint:#5e748a;
-    --accent:#36c08a; --accent-dark:#1f5a3c;
-    --amber:#e2a93b; --red:#e0574f; --red-dark:#8f2f2a;
-    --site:#f4f1e8; --site-ink:#1c2b24; --site-line:#d9d3c2; --site-green:#2e7d54;
+    --bg:#15122b; --bg-glow:rgba(124,77,255,.22); --bg-glow-2:rgba(80,110,255,.12);
+    --surface:#1d1a38; --surface-2:#252148; --surface-3:#2d2856; --line:#36305f; --line-soft:#2a2550;
+    --ink:#f1eefb; --muted:#b1abd0; --faint:#827ca6;
+    --brand:#7c4dff; --brand-2:#6a3df0; --brand-soft:rgba(124,77,255,.18); --brand-ink:#fff;
+    --crit:#ff3d71; --high:#ff7a1a; --med:#f5d90a; --low:#8b86c9; --ok:#34d399;
+    --site:#f6f4ee; --site-ink:#1c2b24; --site-line:#d9d3c2; --site-green:#2e7d54;
     --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:dark;
   }
-  :root:not([data-theme="light"]) { color-scheme: dark; }
+  :root[data-theme="light"] {
+    --bg:#f5f3fc; --bg-glow:rgba(124,77,255,.12); --bg-glow-2:rgba(80,110,255,.08);
+    --surface:#ffffff; --surface-2:#f4f1fd; --surface-3:#ebe6fb; --line:#ddd6f3; --line-soft:#ebe6f8;
+    --ink:#1d1838; --muted:#5d5880; --faint:#8c87ab;
+    --brand:#6a3df0; --brand-2:#5a2fdc; --brand-soft:rgba(106,61,240,.12);
+    --crit:#e11d48; --high:#ea580c; --med:#b59a00; --low:#6f6ab0; --ok:#059669;
+    color-scheme:light;
+  }
   * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
   html,body { margin:0; }
   body {
     background:
-      radial-gradient(1100px 500px at 85% -10%, rgba(54,192,138,.10), transparent 60%),
-      radial-gradient(900px 500px at 0% 110%, rgba(226,169,59,.06), transparent 55%),
+      radial-gradient(900px 480px at 92% -8%, var(--bg-glow), transparent 60%),
+      radial-gradient(800px 480px at -5% 105%, var(--bg-glow-2), transparent 55%),
       var(--bg);
-    color:var(--ink);
-    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
-    min-height:100vh; line-height:1.5;
+    color:var(--ink); min-height:100vh; line-height:1.5;
+    font-family:"Plus Jakarta Sans","Segoe UI",system-ui,-apple-system,sans-serif;
   }
-  .wrap { max-width:1140px; margin:0 auto; padding:26px 16px 60px; }
+  button { font:inherit; }
 
-  header.top { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
-  .mark { width:40px; height:40px; flex:0 0 auto; }
-  header.top h1 { font-size:21px; margin:0; letter-spacing:.3px; font-weight:700; }
-  header.top .sub { color:var(--muted); font-size:13px; margin:2px 0 0; }
-  .tagline { color:var(--accent); font-size:12.5px; margin:10px 0 22px; letter-spacing:.2px; }
-  .tagline b { color:var(--ink); font-weight:600; }
+  /* ---- top bar ---- */
+  .top { display:flex; align-items:center; gap:18px; padding:12px 20px; border-bottom:1px solid var(--line-soft); }
+  .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+  .brand img { width:40px; height:40px; }
+  .brand b { display:block; font-size:19px; line-height:1.1; }
+  .brand small { color:var(--muted); font-size:12px; }
+  .tabs { display:flex; gap:6px; margin-left:18px; }
+  .tab { padding:8px 14px; border-radius:11px; color:var(--muted); font-size:14px; border:1px solid transparent; }
+  .tab.on { background:var(--brand-soft); color:var(--ink); border-color:var(--brand); }
+  .top .right { margin-left:auto; display:flex; align-items:center; gap:10px; position:relative; }
+  .iconbtn { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); display:grid; place-items:center; cursor:pointer; }
+  .iconbtn:hover { border-color:var(--brand); }
+  .iconbtn svg { width:18px; height:18px; }
+  .menu { position:absolute; right:0; top:46px; min-width:190px; background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:10px; box-shadow:0 18px 40px rgba(0,0,0,.28); z-index:30; }
+  .menu[hidden] { display:none; }
+  .menu .who { padding:4px 8px 8px; border-bottom:1px solid var(--line-soft); margin-bottom:6px; }
+  .menu .who b { display:block; font-size:14px; } .menu .who small { color:var(--muted); font-size:12px; }
+  .menu button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0;
+    color:var(--ink); padding:8px; border-radius:8px; cursor:pointer; font-size:13.5px; }
+  .menu button:hover { background:var(--surface-2); }
+  .menu svg { width:16px; height:16px; color:var(--muted); }
 
-  .cta { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
-  .launch {
-    appearance:none; border:0; cursor:pointer;
-    background:linear-gradient(180deg,#3ad095,#2a9e70); color:#06130d;
-    font-size:16px; font-weight:700; letter-spacing:.2px;
-    padding:14px 24px; border-radius:12px;
-    box-shadow:0 10px 26px rgba(54,192,138,.28), inset 0 1px 0 rgba(255,255,255,.35);
-    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-  }
-  .launch:hover { transform:translateY(-1px); box-shadow:0 14px 30px rgba(54,192,138,.36); }
-  .launch:active { transform:translateY(0); }
-  .launch:disabled { opacity:.5; cursor:default; box-shadow:none; transform:none; }
-  .launch .ico { margin-right:8px; }
-  .reset {
-    appearance:none; background:transparent; color:var(--muted); border:1px solid var(--line);
-    padding:12px 16px; border-radius:11px; font-size:14px; cursor:pointer;
-  }
-  .reset:hover { color:var(--ink); border-color:var(--faint); }
-  .cta .hint { color:var(--faint); font-size:12.5px; }
+  /* ---- layout: side menu + main ---- */
+  .shell { display:flex; min-height:calc(100vh - 65px); }
+  .side { width:236px; flex:0 0 auto; border-right:1px solid var(--line-soft); padding:14px 12px;
+    display:flex; flex-direction:column; gap:4px; transition:width .2s ease; }
+  .side .hide { align-self:flex-end; margin-bottom:8px; width:32px; height:32px; }
+  .nav { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:12px; color:var(--muted);
+    font-size:14px; border:1px solid transparent; white-space:nowrap; overflow:hidden; }
+  .nav svg { width:18px; height:18px; flex:0 0 auto; }
+  .nav.on { background:var(--brand-soft); color:var(--ink); border-color:var(--brand); }
+  .feedback { margin-top:auto; border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--surface); }
+  .feedback b { font-size:13px; display:block; margin-bottom:6px; }
+  .feedback textarea { width:100%; min-height:62px; resize:vertical; border-radius:9px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); padding:8px; font:inherit; font-size:12.5px; }
+  .feedback .row { display:flex; align-items:center; justify-content:space-between; margin-top:7px; gap:8px; }
+  .feedback small { color:var(--faint); font-size:11px; }
+  .side.mini { width:66px; }
+  .side.mini .nav span, .side.mini .feedback { display:none; }
+  .side.mini .hide { align-self:center; }
+  .side.mini .hide svg { transform:scaleX(-1); }
 
-  .grid { display:grid; grid-template-columns:1fr 1.25fr; gap:18px; align-items:start; }
-  @media (max-width:820px){ .grid { grid-template-columns:1fr; } }
+  main { flex:1; min-width:0; padding:24px 26px 50px; }
+  h1 { font-size:34px; margin:0; letter-spacing:-.3px; font-weight:700;
+    background:linear-gradient(90deg,var(--ink),var(--muted)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lead { margin:4px 0 0; color:var(--muted); font-size:15px; }
+  .meta { margin:2px 0 0; color:var(--faint); font-size:13px; }
+  .meta b { color:var(--ink); }
 
-  .col-title { font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:var(--faint); margin:0 0 9px 2px; }
+  .cta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:18px 0 18px; }
+  .btn { appearance:none; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;
+    padding:9px 15px; border-radius:10px; font-size:13.5px; display:inline-flex; align-items:center; gap:7px; }
+  .btn:hover { border-color:var(--brand); }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:var(--brand-ink); font-weight:600; }
+  .btn.primary:hover { background:var(--brand-2); }
+  .btn.big { padding:13px 22px; font-size:15.5px; border-radius:12px; box-shadow:0 10px 26px rgba(124,77,255,.32); }
+  .btn:disabled { opacity:.55; cursor:default; box-shadow:none; }
+  .btn svg { width:16px; height:16px; }
+  .hint { color:var(--faint); font-size:13px; }
 
-  /* ---- the guarded site ---- */
-  .site {
-    background:linear-gradient(160deg,#f7f5ee,var(--site)); color:var(--site-ink);
-    border:1px solid var(--site-line); border-radius:16px; padding:20px; position:relative; overflow:hidden;
-  }
-  .site .sb { display:flex; align-items:center; gap:9px; margin-bottom:4px; }
+  /* ---- severity cards ---- */
+  .sevs { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  .sevc { border:1.5px solid var(--c); border-radius:16px; padding:14px 16px; background:
+    linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, transparent), transparent 70%), var(--surface);
+    box-shadow:0 0 18px color-mix(in srgb, var(--c) 28%, transparent); transition:box-shadow .3s, transform .3s; }
+  .sevc.quiet { box-shadow:none; border-color:color-mix(in srgb, var(--c) 40%, var(--line)); }
+  .sevc.bump { transform:scale(1.03); }
+  .sevc .n { font-size:30px; font-weight:700; line-height:1.1; }
+  .sevc .l { color:var(--c); font-weight:700; letter-spacing:.6px; font-size:13px; }
+  .sevc small { color:var(--muted); font-size:12px; }
+  .crit { --c:var(--crit); } .high { --c:var(--high); } .med { --c:var(--med); } .low { --c:var(--low); }
+
+  .grid { display:grid; grid-template-columns:1fr 1.15fr; gap:18px; align-items:start; }
+  .col-title { font-size:12px; text-transform:uppercase; letter-spacing:1.3px; color:var(--faint); margin:0 0 8px 2px; }
+
+  /* ---- the guarded site (always its own light look: it's the customer's website) ---- */
+  .site { background:linear-gradient(160deg,#fbfaf5,var(--site)); color:var(--site-ink); border:1px solid var(--site-line);
+    border-radius:16px; padding:20px; position:relative; overflow:hidden; }
+  .site .sb { display:flex; align-items:center; gap:9px; }
   .site .sb .l { font-size:24px; }
   .site .sb h2 { font-size:15.5px; margin:0; }
   .site .sb small { color:#5b6b62; font-size:11.5px; }
-  .site form { margin-top:14px; }
   .site label { display:block; font-size:12px; color:#5b6b62; margin:11px 0 4px; }
-  .site input {
-    width:100%; padding:10px 11px; border:1px solid var(--site-line); border-radius:9px;
-    font-size:14px; background:#fbfaf5; color:var(--site-ink);
-  }
-  .site .loginbtn {
-    margin-top:16px; width:100%; background:var(--site-green); color:#fff; border:0;
-    padding:11px; border-radius:9px; font-size:14.5px; font-weight:600; cursor:default;
-  }
-  .site .attempt {
-    margin-top:12px; min-height:20px; font-family:var(--mono); font-size:12px; color:var(--red-dark);
-    transition:opacity .2s;
-  }
-  .site .shield-flash {
-    position:absolute; inset:0; background:rgba(224,87,79,.12);
-    opacity:0; pointer-events:none; transition:opacity .25s;
-  }
-  .site.under .shield-flash { opacity:1; }
-  .site .guardchip {
-    position:absolute; top:14px; right:14px; font-size:11px; font-weight:600;
-    background:#e6efe9; color:var(--accent-dark); border-radius:20px; padding:4px 11px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .site .guardchip .dot { width:7px; height:7px; border-radius:50%; background:var(--site-green); }
-  .site.under .guardchip { background:#f6e3c6; color:#8a5a12; }
-  .site.under .guardchip .dot { background:var(--amber); }
-  .site.blocked .guardchip { background:#dbeee3; color:var(--accent-dark); }
+  .site input { width:100%; padding:10px 11px; border:1px solid var(--site-line); border-radius:9px; font-size:14px;
+    background:#fff; color:var(--site-ink); }
+  .site .loginbtn { margin-top:16px; width:100%; background:var(--site-green); color:#fff; border:0; padding:11px;
+    border-radius:9px; font-size:14.5px; font-weight:600; }
+  .site .attempt { margin-top:12px; min-height:20px; font-family:var(--mono); font-size:12px; color:#9b2c25; }
+  .site .flash { position:absolute; inset:0; background:rgba(224,87,79,.12); opacity:0; pointer-events:none; transition:opacity .25s; }
+  .site.under .flash { opacity:1; }
+  .site .chip { position:absolute; top:14px; right:14px; font-size:11px; font-weight:600; background:#e6efe9; color:#1f5a3c;
+    border-radius:20px; padding:4px 11px; display:flex; align-items:center; gap:6px; }
+  .site .chip i { width:7px; height:7px; border-radius:50%; background:var(--site-green); }
+  .site.under .chip { background:#f6e3c6; color:#8a5a12; } .site.under .chip i { background:#e2a93b; }
 
-  /* ---- the SentrAI panel ---- */
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
-  .panel .phead {
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-2);
-  }
-  .panel .phead .t { font-size:13.5px; font-weight:600; letter-spacing:.3px; }
-  .panel .phead .t span { color:var(--faint); font-weight:400; }
+  /* ---- machine strip ---- */
+  .machine { display:flex; align-items:center; gap:12px; margin-top:14px; padding:12px 14px; border:1px solid var(--line);
+    border-radius:14px; background:var(--surface); }
+  .machine .nm b { display:block; font-size:14px; } .machine .nm small { color:var(--faint); font-size:12px; }
+  .machine .status { margin-left:auto; color:var(--ok); font-size:13px; }
+  .machine .score { text-align:right; min-width:66px; }
+  .machine .score b { display:block; font-size:20px; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .machine .score small { font-size:12px; }
+  .meter { height:6px; border-radius:4px; background:var(--surface-3); overflow:hidden; margin-top:10px; }
+  .meter i { display:block; height:100%; width:4%; background:var(--ok); border-radius:4px; transition:width .5s, background .5s; }
 
-  .statepill { font-size:11.5px; font-weight:700; letter-spacing:.4px; padding:5px 12px; border-radius:20px;
-    border:1px solid transparent; }
-  .statepill.calm { background:rgba(54,192,138,.14); color:var(--accent); border-color:rgba(54,192,138,.3); }
-  .statepill.watch{ background:rgba(226,169,59,.14); color:var(--amber); border-color:rgba(226,169,59,.3); }
-  .statepill.alarm{ background:rgba(224,87,79,.16); color:var(--red); border-color:rgba(224,87,79,.35); }
+  /* ---- risk card (What happened / What it means / Suggested fix) ---- */
+  .empty { border:1px dashed var(--line); border-radius:16px; padding:26px; text-align:center; color:var(--faint); font-size:14px; }
+  .card { border:1.5px solid var(--c); border-radius:18px; background:var(--surface); padding:20px 22px;
+    box-shadow:0 0 22px color-mix(in srgb, var(--c) 24%, transparent); animation:pop .35s ease; }
+  .card[hidden] { display:none; }
+  @keyframes pop { from { opacity:0; transform:translateY(6px); } }
+  .card .tag { color:var(--c); font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; }
+  .card h3 { margin:2px 0 10px; font-size:23px; }
+  .card h4 { margin:12px 0 2px; font-size:12px; color:var(--faint); letter-spacing:.8px; text-transform:uppercase; font-weight:600; }
+  .card p { margin:0; font-size:14.5px; }
+  .card p.soft { color:var(--muted); }
+  .fix { margin-top:14px; background:var(--surface-2); border-radius:14px; padding:14px 16px; }
+  .fix[hidden] { display:none; }
+  .fix h4 { margin-top:0; }
+  .fix .acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .fix .done { margin-top:10px; color:var(--ok); font-size:13.5px; }
+  .card .talk { margin-top:14px; width:100%; justify-content:center; }
+  .watching { color:var(--muted); font-size:13.5px; margin-top:10px; display:flex; gap:8px; align-items:center; }
+  .watching i { width:8px; height:8px; border-radius:50%; background:var(--c); animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity:.3; } }
 
-  .gaugewrap { padding:16px 16px 4px; }
-  .gaugewrap .glabel { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:7px; }
-  .gaugewrap .glabel b { color:var(--ink); font-variant-numeric:tabular-nums; }
-  .gbar { height:10px; border-radius:6px; background:#0b1119; border:1px solid var(--line); overflow:hidden; }
-  .gfill { height:100%; width:4%; border-radius:6px; background:var(--accent);
-    transition:width .5s ease, background .5s ease; }
-  .gthresh { position:relative; height:0; }
-  .gthresh i { position:absolute; top:-13px; right:20%; font-size:10px; color:var(--faint); }
-
-  .steps { display:flex; gap:6px; padding:12px 16px 4px; }
-  .steps .s { flex:1; text-align:center; font-size:10.5px; color:var(--faint); letter-spacing:.3px; }
-  .steps .s .bead { width:100%; height:4px; border-radius:3px; background:var(--line); margin-bottom:6px; transition:background .3s; }
-  .steps .s.on { color:var(--ink); }
-  .steps .s.on .bead { background:var(--accent); }
-
-  .incident { margin:12px 16px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);
-    opacity:0; transform:translateY(6px); transition:opacity .35s, transform .35s, border-color .35s; }
-  .incident.show { opacity:1; transform:none; }
-  .incident.sev-watch { border-color:rgba(226,169,59,.45); }
-  .incident.sev-alarm { border-color:rgba(224,87,79,.5); }
-  .incident.sev-done { border-color:rgba(54,192,138,.45); }
-  .incident .ih { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line); }
-  .incident .sev { font-size:10.5px; font-weight:700; letter-spacing:.5px; padding:3px 9px; border-radius:6px; }
-  .sev.watch { background:rgba(226,169,59,.16); color:var(--amber); }
-  .sev.alarm { background:rgba(224,87,79,.18); color:var(--red); }
-  .sev.done  { background:rgba(54,192,138,.16); color:var(--accent); }
-  .incident .ih .title { font-size:14px; font-weight:600; }
-  .incident .ih .when { margin-left:auto; font-size:11px; color:var(--faint); font-family:var(--mono); }
-  .incident .ib { padding:12px 14px; font-size:13px; color:var(--muted); }
-  .incident .ib .plain { color:var(--ink); }
-  .incident .ib ul { margin:9px 0 0; padding-left:18px; }
-  .incident .ib li { margin:3px 0; }
-  .incident .ib li::marker { color:var(--accent); }
-  .incident .act { display:flex; gap:8px; padding:0 14px 13px; }
-  .incident .act .b {
-    font-size:12px; padding:7px 12px; border-radius:8px; border:1px solid var(--line);
-    background:#0b1119; color:var(--muted); display:flex; align-items:center; gap:6px;
-  }
-  .incident .act .b.auto { border-color:rgba(54,192,138,.4); color:var(--accent); }
-
-  .logwrap { border-top:1px solid var(--line); }
-  .logwrap .lh { padding:10px 16px 6px; font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--faint); }
-  .log { font-family:var(--mono); font-size:11.8px; line-height:1.55; padding:0 16px 14px;
-    max-height:230px; overflow:auto; }
-  .log .ln { display:flex; gap:9px; padding:1px 0; opacity:0; transform:translateX(-5px);
-    animation:in .22s forwards; }
-  @keyframes in { to { opacity:1; transform:none; } }
+  /* ---- activity log ---- */
+  .logbox { margin-top:16px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+  .logbox .lh { padding:10px 14px 4px; font-size:12px; text-transform:uppercase; letter-spacing:1.2px; color:var(--faint); }
+  .log { font-family:var(--mono); font-size:11.8px; line-height:1.55; padding:0 14px 12px; max-height:200px; overflow:auto; }
+  .log .ln { display:flex; gap:9px; animation:in .22s both; }
+  @keyframes in { from { opacity:0; transform:translateX(-5px); } }
   .log .ts { color:var(--faint); flex:0 0 auto; }
-  .log .ln.ok   .msg { color:var(--muted); }
-  .log .ln.warn .msg { color:var(--amber); }
-  .log .ln.bad  .msg { color:var(--red); }
-  .log .ln.act  .msg { color:var(--accent); }
-  .log .ln .msg b { color:var(--ink); font-weight:600; }
+  .log .ok .msg { color:var(--muted); } .log .bad .msg { color:var(--crit); }
+  .log .warn .msg { color:var(--high); } .log .act .msg { color:var(--brand); }
+  .log .msg b { color:var(--ink); font-weight:600; }
+  :root[data-theme="light"] .log .act .msg { color:var(--brand-2); }
 
-  .foot { color:var(--faint); font-size:11.5px; margin-top:26px; max-width:760px; }
-  .foot b { color:var(--muted); }
-  .disc { margin-top:10px; padding:11px 13px; border:1px dashed var(--line); border-radius:10px;
-    color:var(--faint); font-size:11.5px; }
+  .disc { margin-top:24px; padding:11px 13px; border:1px dashed var(--line); border-radius:12px; color:var(--faint); font-size:12px; }
+  .disc b { color:var(--muted); }
+
+  /* ---- Talk to Sentry drawer ---- */
+  .drawer { position:fixed; top:0; right:0; bottom:0; width:min(400px,100%); background:var(--surface); border-left:1px solid var(--line);
+    box-shadow:-20px 0 40px rgba(0,0,0,.25); display:flex; flex-direction:column; z-index:40;
+    transform:translateX(105%); transition:transform .25s ease; }
+  .drawer.open { transform:none; }
+  .drawer .dh { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line-soft); }
+  .drawer .dh b { font-size:15px; } .drawer .dh small { color:var(--muted); font-size:12px; display:block; }
+  .drawer .dh .iconbtn { margin-left:auto; width:32px; height:32px; }
+  .msgs { flex:1; overflow:auto; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .bub { max-width:88%; padding:10px 12px; border-radius:14px; font-size:14px; }
+  .bub.me { align-self:flex-end; background:var(--brand); color:#fff; border-bottom-right-radius:4px; }
+  .bub.bot { align-self:flex-start; background:var(--surface-2); border-bottom-left-radius:4px; }
+  .quick { display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 8px; }
+  .quick .btn { font-size:12.5px; padding:6px 10px; border-radius:20px; }
+  .ask { display:flex; gap:8px; padding:10px 16px 16px; }
+  .ask input { flex:1; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); color:var(--ink);
+    padding:10px 12px; font:inherit; font-size:14px; }
+
+  @media (max-width:1100px) { .grid { grid-template-columns:1fr; } }
+  @media (max-width:820px) {
+    .tabs { display:none; }
+    .sevs { grid-template-columns:repeat(2,1fr); }
+    main { padding:18px 16px 40px; }
+    .site .chip { position:static; display:inline-flex; margin-bottom:10px; }
+    .side { width:66px; } .side .nav span, .side .feedback { display:none; }
+    .side.wide { position:fixed; left:0; top:65px; bottom:0; width:236px; z-index:35; background:var(--bg); }
+    .side.wide .nav span { display:inline; } .side.wide .feedback { display:block; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <header class="top">
-    <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M24 3 6 10v13c0 11 7.6 18.6 18 22 10.4-3.4 18-11 18-22V10L24 3Z"
-            fill="none" stroke="#36c08a" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M24 14v20M15 24h18" stroke="#36c08a" stroke-width="2.4" stroke-linecap="round"/>
-    </svg>
-    <div>
-      <h1>SentrAI — Live Workflow Demo</h1>
-      <p class="sub">One button. One simulated attack. The whole response, start to finish.</p>
+<header class="top">
+  <span class="brand"><img src="mark.svg" alt=""><span><b>SentrAI</b><small>Cybersecurity Console</small></span></span>
+  <nav class="tabs"><span class="tab on">Command Center</span><span class="tab">Staff Reports</span></nav>
+  <div class="right">
+    <button class="iconbtn" id="themeBtn" title="Switch to Light Mode" aria-label="Switch theme"></button>
+    <button class="iconbtn" id="profileBtn" aria-label="Profile menu" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    </button>
+    <div class="menu" id="profileMenu" hidden>
+      <div class="who"><b>Demo Owner</b><small>Owner</small></div>
+      <button id="menuTheme"></button>
     </div>
-  </header>
-
-  <p class="tagline">A sentry doesn't chase you. It just guards the gate. <b>It holds the line and never crosses it.</b></p>
-
-  <div class="cta">
-    <button class="launch" id="launch"><span class="ico">▶</span>Launch simulated attack</button>
-    <button class="reset" id="reset" hidden>Reset demo</button>
-    <span class="hint" id="hint">Press to watch a password-guessing attack hit the demo site — and watch SentrAI handle it.</span>
   </div>
+</header>
 
-  <div class="grid">
+<div class="shell">
+  <aside class="side" id="side">
+    <button class="iconbtn hide" id="hideBtn" title="Hide menu" aria-label="Hide or show the side menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M16 10l-2 2 2 2"/></svg>
+    </button>
+    <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span>Sentry</span></span>
+    <span class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 4l6 6M4 20l9-9M11 6l7 7-3 3-7-7z"/></svg><span>Respond</span></span>
+    <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4a3 3 0 0 1 3 3V14"/></svg><span>How It Works</span></span>
+    <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Monitoring</span></span>
+    <span class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Settings</span></span>
+    <form class="feedback" id="feedback">
+      <b>Send Feedback</b>
+      <textarea id="fbText" placeholder="Tell us what you think" aria-label="Your feedback"></textarea>
+      <div class="row"><small id="fbNote">Demo only: nothing is sent.</small><button class="btn primary" type="submit">Send</button></div>
+    </form>
+  </aside>
 
-    <!-- the site SentrAI guards -->
-    <section>
-      <p class="col-title">The website SentrAI guards</p>
-      <div class="site" id="site">
-        <span class="guardchip" id="guardchip"><span class="dot"></span><span id="guardtext">Protected</span></span>
-        <div class="shield-flash"></div>
-        <div class="sb">
-          <span class="l">🛡️</span>
-          <div>
-            <h2>Aegis Academy — Student Portal</h2>
-            <small>Fictional institution · synthetic data only</small>
+  <main>
+    <h1>Command Center</h1>
+    <p class="lead" id="lead">Nothing needs you right now.</p>
+    <p class="meta">Risk now <b id="riskNow">4</b> of 100 · SentrAI acts on its own · 1 of 1 machines online</p>
+
+    <div class="cta">
+      <button class="btn primary big" id="launch">▶ Launch simulated attack</button>
+      <button class="btn" id="reset" hidden>Reset demo</button>
+      <span class="hint" id="hint">Press to watch a password-guessing attack hit the demo site, and watch SentrAI handle it.</span>
+    </div>
+
+    <div class="sevs">
+      <div class="sevc crit quiet" id="sev-crit"><div class="l">CRITICAL</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
+      <div class="sevc high quiet" id="sev-high"><div class="l">HIGH</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
+      <div class="sevc med quiet" id="sev-med"><div class="l">MEDIUM</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
+      <div class="sevc low quiet" id="sev-low"><div class="l">LOW</div><div class="n" data-n>0</div><small>Nothing needs you here</small></div>
+    </div>
+
+    <div class="grid">
+      <section>
+        <p class="col-title">The website SentrAI guards</p>
+        <div class="site" id="site">
+          <span class="chip"><i></i><span id="chipText">Protected</span></span>
+          <div class="flash"></div>
+          <div class="sb"><span class="l">🛡️</span><div><h2>Aegis Academy Student Portal</h2><small>Fictional school · synthetic data only</small></div></div>
+          <form onsubmit="return false">
+            <label>Username</label><input type="text" value="admin" readonly>
+            <label>Password</label><input type="password" value="••••••••" readonly id="pw">
+            <button class="loginbtn" type="button">Sign in</button>
+            <div class="attempt" id="attempt"></div>
+          </form>
+        </div>
+        <div class="machine">
+          <div class="nm"><b>aegis-web</b><small>School website · Agent</small></div>
+          <span class="status" id="mStatus">Protected</span>
+          <div class="score"><b id="mScore">4</b><small id="mLevel" style="color:var(--ok)">Low</small></div>
+        </div>
+        <div class="meter"><i id="meter"></i></div>
+      </section>
+
+      <section>
+        <p class="col-title">Risk card</p>
+        <div class="empty" id="empty">No risks right now. Press <b>Launch simulated attack</b> to start.</div>
+        <article class="card high" id="card" hidden>
+          <div class="tag" id="tag">High · Open</div>
+          <h3>Brute Force</h3>
+          <h4>What happened</h4>
+          <p id="happened">203.0.113.45 kept trying wrong passwords for the 'admin' account on aegis-web.</p>
+          <h4>What it means</h4>
+          <p class="soft">Someone is guessing passwords to get into an account. If they guess right, they are in.</p>
+          <div class="watching" id="watching"><i></i>SentrAI is acting on this now…</div>
+          <div class="fix" id="fix" hidden>
+            <h4>Suggested fix</h4>
+            <p>SentrAI already blocked the IP address mentioned above and slowed down sign-ins for 2 hours, so that they cannot keep guessing passwords. Keep the block, and ask the account owner to change their password.</p>
+            <div class="acts" id="fixActs">
+              <button class="btn primary" id="keep">Keep the block</button>
+              <button class="btn" id="undo">Undo the block</button>
+            </div>
+            <div class="done" id="fixDone" hidden></div>
           </div>
-        </div>
-        <form onsubmit="return false">
-          <label>Username</label>
-          <input type="text" value="admin" readonly>
-          <label>Password</label>
-          <input type="password" value="••••••••" readonly id="pwfield">
-          <button class="loginbtn" type="button">Sign in</button>
-          <div class="attempt" id="attempt"></div>
-        </form>
-      </div>
-    </section>
+          <button class="btn talk" id="talk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+            Talk to Sentry
+          </button>
+        </article>
 
-    <!-- the SentrAI panel -->
-    <section>
-      <p class="col-title">SentrAI control panel</p>
-      <div class="panel">
-        <div class="phead">
-          <div class="t">office-pc <span>· web server</span></div>
-          <div class="statepill calm" id="statepill">● ALL CLEAR</div>
-        </div>
-
-        <div class="gaugewrap">
-          <div class="glabel"><span>Risk on this machine</span><b><span id="gval">4</span> / 100</b></div>
-          <div class="gbar"><div class="gfill" id="gfill"></div></div>
-          <div class="gthresh"><i>auto-block at 80</i></div>
-        </div>
-
-        <div class="steps" id="steps">
-          <div class="s" data-k="detect"><div class="bead"></div>Detect</div>
-          <div class="s" data-k="explain"><div class="bead"></div>Explain</div>
-          <div class="s" data-k="block"><div class="bead"></div>Block</div>
-          <div class="s" data-k="resolve"><div class="bead"></div>Resolve</div>
-        </div>
-
-        <div class="incident" id="incident">
-          <div class="ih">
-            <span class="sev watch" id="sev">OPEN</span>
-            <span class="title" id="inctitle">Incident</span>
-            <span class="when" id="incwhen"></span>
-          </div>
-          <div class="ib" id="incbody"></div>
-          <div class="act" id="incact"></div>
-        </div>
-
-        <div class="logwrap">
-          <div class="lh">Live activity</div>
+        <div class="logbox">
+          <div class="lh">Activity Log</div>
           <div class="log" id="log"></div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
-  </div>
-
-  <div class="disc">
-    <b>This is a simulation.</b> No real system is attacked. The button replays one scripted workflow on a
-    fictional school portal using synthetic accounts and documentation-only IP addresses (203.0.113.x, from
-    RFC&nbsp;5737). It shows how SentrAI responds; it does not send any real network traffic.
-  </div>
-
-  <p class="foot">
-    SentrAI watches a computer's own activity, raises a plain-language alert when something looks like an
-    attack, and — for anything it's allowed to handle on its own — blocks the source inside your own network.
-    No hack-back: it only guards the gate.
-  </p>
-
+    <div class="disc">
+      <b>This is a simulation.</b> No real system is attacked. The button replays one scripted story on a fictional
+      school portal using made-up accounts and documentation-only IP addresses (203.0.113.x and 192.0.2.x, from
+      RFC&nbsp;5737). It sends no network traffic, and the chat answers and feedback form are scripted for the demo.
+    </div>
+  </main>
 </div>
+
+<aside class="drawer" id="drawer" aria-label="Talk to Sentry">
+  <div class="dh">
+    <img src="mark.svg" alt="" width="30" height="30">
+    <div><b>Sentry</b><small>About: Brute Force on aegis-web</small></div>
+    <button class="iconbtn" id="closeDrawer" aria-label="Close">✕</button>
+  </div>
+  <div class="msgs" id="msgs"></div>
+  <div class="quick" id="quick"></div>
+  <form class="ask" id="askForm">
+    <input id="askInput" placeholder="Ask Sentry about this risk" aria-label="Ask Sentry">
+    <button class="btn primary" type="submit">Send</button>
+  </form>
+</aside>
 
 <script>
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
 
-  var WRONG = ["password","admin123","letmein","qwerty","P@ssw0rd","welcome1",
-               "aegis2024","changeme","root","12345678","student","admin"];
+  /* ---------- theme: Light Mode / Dark Mode ---------- */
+  var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e) { return null; } }
+  function applyTheme(t){
+    document.documentElement.setAttribute("data-theme", t);
+    var next = t === "light" ? "Dark Mode" : "Light Mode";
+    $("themeBtn").innerHTML = t === "light" ? MOON : SUN;
+    $("themeBtn").title = "Switch to " + next;
+    $("menuTheme").innerHTML = (t === "light" ? MOON : SUN) + next;
+  }
+  function toggleTheme(){
+    var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    applyTheme(t); store("sentrai-demo-theme", t);
+  }
+  applyTheme(store("sentrai-demo-theme") === "light" ? "light" : "dark");
+  $("themeBtn").addEventListener("click", toggleTheme);
+  $("menuTheme").addEventListener("click", function(){ toggleTheme(); $("profileMenu").hidden = true; });
+  $("profileBtn").addEventListener("click", function(e){ e.stopPropagation(); $("profileMenu").hidden = !$("profileMenu").hidden; });
+  document.addEventListener("click", function(e){ if (!$("profileMenu").contains(e.target)) $("profileMenu").hidden = true; });
+
+  /* ---------- side menu: hide button lives inside the menu ---------- */
+  var narrow = window.matchMedia("(max-width:820px)");
+  $("hideBtn").addEventListener("click", function(){
+    var s = $("side");
+    if (narrow.matches) { s.classList.toggle("wide"); return; }
+    s.classList.toggle("mini");
+    $("hideBtn").title = s.classList.contains("mini") ? "Show menu" : "Hide menu";
+    store("sentrai-demo-menu", s.classList.contains("mini") ? "mini" : "full");
+  });
+  if (store("sentrai-demo-menu") === "mini") $("side").classList.add("mini");
+
+  /* ---------- feedback form at the bottom of the side menu ---------- */
+  $("feedback").addEventListener("submit", function(e){
+    e.preventDefault();
+    if (!$("fbText").value.trim()) { $("fbNote").textContent = "Type something first."; return; }
+    $("fbText").value = "";
+    $("fbNote").textContent = "Thanks! (Demo only: nothing was sent.)";
+  });
+
+  /* ---------- the scripted attack ---------- */
+  var WRONG = ["password","admin123","letmein","qwerty","P@ssw0rd","welcome1","aegis2024","changeme","root","12345678","student","admin"];
   var ATTACKER = "203.0.113.45";
-  var clock = 0; // simulated seconds
-  var timers = [];
-  var running = false;
+  var clock = 0, timers = [], running = false;
 
   function at(sec, fn){ timers.push(setTimeout(fn, sec*1000)); }
-  function clearAll(){ timers.forEach(clearTimeout); timers = []; }
-
   function stamp(){
-    clock += (0.3 + Math.random()*0.5);
-    var m = Math.floor(clock/60), s = Math.floor(clock%60);
-    return ("0"+ (2 + m)).slice(-2) + ":" + ("0"+ (14 + s%46)).slice(-2) + ":" +
-           ("0"+ Math.floor(Math.random()*60)).slice(-2);
+    clock += 0.3 + Math.random()*0.5;
+    var s = 14*60 + Math.floor(clock);
+    return "02:" + ("0"+Math.floor(s/60)%60).slice(-2) + ":" + ("0"+s%60).slice(-2);
   }
-
   function logln(kind, html){
     var row = document.createElement("div");
     row.className = "ln " + kind;
     row.innerHTML = '<span class="ts">'+stamp()+'</span><span class="msg">'+html+'</span>';
-    $("log").appendChild(row);
-    $("log").scrollTop = $("log").scrollHeight;
+    $("log").appendChild(row); $("log").scrollTop = $("log").scrollHeight;
   }
-
-  function setGauge(v, cls){
-    v = Math.max(0, Math.min(100, v));
-    $("gfill").style.width = (v<4?4:v) + "%";
-    $("gval").textContent = Math.round(v);
-    var c = cls || (v>=80?"var(--red)": v>=40?"var(--amber)":"var(--accent)");
-    $("gfill").style.background = c;
+  function level(v){ return v>=80 ? ["Critical","var(--crit)"] : v>=60 ? ["High","var(--high)"] : v>=30 ? ["Medium","var(--med)"] : ["Low","var(--ok)"]; }
+  function setRisk(v){
+    v = Math.round(Math.max(0, Math.min(100, v)));
+    var lv = level(v);
+    $("riskNow").textContent = v; $("mScore").textContent = v; $("mScore").style.color = v>=30 ? lv[1] : "";
+    $("mLevel").textContent = lv[0]; $("mLevel").style.color = lv[1];
+    $("meter").style.width = Math.max(4, v) + "%"; $("meter").style.background = lv[1];
   }
-
-  function setState(cls, text){
-    $("statepill").className = "statepill " + cls;
-    $("statepill").textContent = "● " + text;
+  function setSev(which){
+    ["crit","high","med","low"].forEach(function(k){
+      var el = $("sev-"+k), on = k === which;
+      el.querySelector("[data-n]").textContent = on ? 1 : 0;
+      el.querySelector("small").textContent = on ? "Risk requires your attention ›" : "Nothing needs you here";
+      el.classList.toggle("quiet", !on);
+      if (on) { el.classList.add("bump"); setTimeout(function(){ el.classList.remove("bump"); }, 300); }
+    });
   }
-
-  function stepOn(k){
-    var el = $("steps").querySelector('[data-k="'+k+'"]');
-    if (el) el.classList.add("on");
-  }
+  function setCard(sevClass, tag){ $("card").className = "card " + sevClass; $("tag").textContent = tag; }
 
   function reset(){
-    clearAll(); running = false; clock = 0;
+    timers.forEach(clearTimeout); timers = []; running = false; clock = 0;
     $("log").innerHTML = "";
-    $("incident").className = "incident";
-    $("incact").innerHTML = ""; $("incbody").innerHTML = "";
-    $("steps").querySelectorAll(".s").forEach(function(s){ s.classList.remove("on"); });
-    setGauge(4, "var(--accent)");
-    setState("calm","ALL CLEAR");
-    $("site").className = "site";
-    $("guardtext").textContent = "Protected";
-    $("attempt").textContent = "";
-    $("launch").disabled = false;
-    $("launch").innerHTML = '<span class="ico">▶</span>Launch simulated attack';
+    $("card").hidden = true; $("empty").hidden = false;
+    $("fix").hidden = true; $("watching").hidden = false;
+    $("fixActs").hidden = false; $("fixDone").hidden = true;
+    setSev(null); setRisk(4);
+    $("lead").textContent = "Nothing needs you right now.";
+    $("site").className = "site"; $("chipText").textContent = "Protected";
+    $("mStatus").textContent = "Protected"; $("attempt").textContent = "";
+    $("launch").disabled = false; $("launch").textContent = "▶ Launch simulated attack";
     $("reset").hidden = true;
-    $("hint").textContent = "Press to watch a password-guessing attack hit the demo site — and watch SentrAI handle it.";
+    $("hint").textContent = "Press to watch a password-guessing attack hit the demo site, and watch SentrAI handle it.";
+    closeDrawer(); $("msgs").innerHTML = ""; $("quick").innerHTML = "";
   }
 
   function run(){
     if (running) return;
-    reset();
-    running = true;
-    $("launch").disabled = true;
-    $("launch").innerHTML = '<span class="ico">●</span>Simulation running…';
-    $("hint").textContent = "A single attacker is trying to guess the admin password. Watch the panel on the right.";
+    reset(); running = true;
+    $("launch").disabled = true; $("launch").textContent = "● Simulation running…";
+    $("hint").textContent = "Someone is trying to guess the admin password. Watch the risk card on the right.";
 
-    // --- Baseline: normal traffic ---
-    logln("ok", 'Normal sign-in — staff member <b>192.0.2.10</b> ✓');
-    at(0.9, function(){ logln("ok", 'Page view — /announcements · 192.0.2.10'); });
+    logln("ok", 'Normal sign-in · staff member <b>192.0.2.10</b>');
+    at(0.9, function(){ logln("ok", 'Page view · /announcements · 192.0.2.10'); });
 
-    // --- Attack begins: password-guessing burst ---
     var t0 = 1.8;
-    for (var i=0;i<12;i++){
-      (function(n){
-        at(t0 + n*0.42, function(){
-          $("pwfield").value = "•".repeat(5 + (n%6));
-          $("attempt").textContent = '✗ wrong password ("'+WRONG[n]+'") — attempt '+(n+1)+'/12';
-          logln("bad", 'POST /login user=<b>admin</b> pw="'+WRONG[n]+'" → 401 · from '+ATTACKER);
-          if (n===1){ $("site").classList.add("under"); $("guardtext").textContent="Under attack"; }
-          // gauge climbs with the burst
-          setGauge(8 + n*4.2);
-          if (n===2){ setState("watch","WATCHING"); }
-        });
-      })(i);
-    }
+    for (var i=0;i<12;i++) (function(n){
+      at(t0 + n*0.42, function(){
+        $("pw").value = "•".repeat(5 + n%6);
+        $("attempt").textContent = '✗ wrong password ("'+WRONG[n]+'"), attempt '+(n+1);
+        logln("bad", 'Sign-in failed for <b>admin</b> · from '+ATTACKER);
+        if (n===1) { $("site").classList.add("under"); $("chipText").textContent = "Under attack"; }
+        setRisk(8 + n*4.4);
+      });
+    })(i);
 
-    // --- DETECT ---
-    var tDetect = t0 + 12*0.42 + 0.4; // ~6.9s
-    at(tDetect, function(){
-      stepOn("detect");
-      setState("alarm","INCIDENT OPEN");
-      setGauge(62, "var(--amber)");
-      logln("warn", '<b>SentrAI:</b> pattern detected — 12 failed admin logins in ~5s from one address');
-      var inc = $("incident");
-      inc.className = "incident show sev-watch";
-      $("sev").className = "sev watch"; $("sev").textContent = "OPEN";
-      $("inctitle").textContent = "Someone is guessing the admin password";
-      $("incwhen").textContent = "just now";
-      $("incbody").innerHTML = '<span class="plain">A single visitor (203.0.113.45) tried 12 different ' +
-        'passwords for the <b>admin</b> account in about five seconds.</span> Real people don\'t do that — ' +
-        'this looks like an automated password-guessing tool.';
-      $("incact").innerHTML =
-        '<span class="b">👤 Approve block</span>' +
-        '<span class="b">🔕 Ignore</span>';
+    // Spot it: risk card appears (High), SentrAI already acting on its own
+    var tSpot = t0 + 12*0.42 + 0.4;
+    at(tSpot, function(){
+      setRisk(64); setSev("high");
+      $("empty").hidden = true; $("card").hidden = false;
+      setCard("high", "High · Open");
+      $("lead").textContent = "1 risk needs a look. SentrAI is already acting on it.";
+      logln("warn", '<b>SentrAI:</b> 12 wrong passwords for admin in about 5 seconds from one address');
     });
+    for (var j=0;j<4;j++) (function(n){
+      at(tSpot + 1.6 + n*0.45, function(){
+        logln("bad", 'Sign-in failed for <b>admin</b> · from '+ATTACKER);
+        setRisk(68 + n*5);
+        $("attempt").textContent = '✗ wrong password, attempt '+(13+n)+', still trying…';
+      });
+    })(j);
 
-    // --- EXPLAIN ---
-    at(tDetect + 2.1, function(){
-      stepOn("explain");
-      logln("warn", '<b>SentrAI:</b> explaining the risk in plain words for the owner');
-      $("incbody").innerHTML +=
-        '<ul>' +
-        '<li><b>What it is:</b> an attacker trying many passwords to break into the admin account.</li>' +
-        '<li><b>Why it matters:</b> if one guess works, they get full control of the portal.</li>' +
-        '<li><b>What SentrAI suggests:</b> block this address now, before a guess lands.</li>' +
-        '</ul>';
-    });
-
-    // --- Escalation: attack keeps going past threshold -> auto block ---
-    var tEsc = tDetect + 3.6;
-    for (var j=0;j<4;j++){
-      (function(n){
-        at(tEsc + n*0.4, function(){
-          logln("bad", 'POST /login user=<b>admin</b> pw="'+WRONG[(n+6)%12]+'" → 401 · from '+ATTACKER);
-          setGauge(66 + n*5.5);
-          $("attempt").textContent = '✗ wrong password — attempt '+(13+n)+', still trying…';
-        });
-      })(j);
-    }
-
-    // --- BLOCK ---
-    var tBlock = tEsc + 4*0.4 + 0.3; // crosses 80
+    // Block: crosses 80, SentrAI blocks on its own (no approval step)
+    var tBlock = tSpot + 1.6 + 4*0.45 + 0.3;
     at(tBlock, function(){
-      stepOn("block");
-      setGauge(88, "var(--red)");
-      logln("act", '<b>SentrAI:</b> risk passed 80 — blocking '+ATTACKER+' on this machine (automatic)');
-      $("incident").className = "incident show sev-alarm";
-      $("sev").className = "sev alarm"; $("sev").textContent = "ACTING";
-      $("incact").innerHTML =
-        '<span class="b auto">⚡ Blocked automatically</span>' +
-        '<span class="b">↩ Undo</span>';
-      $("site").classList.remove("under"); $("site").classList.add("blocked");
-      $("guardtext").textContent = "Threat blocked";
+      setRisk(88); setSev("crit");
+      setCard("crit", "Critical · Blocked");
+      logln("act", '<b>SentrAI:</b> risk passed 80, blocked '+ATTACKER+' for 2 hours and slowed sign-ins');
+      $("site").classList.remove("under"); $("chipText").textContent = "Threat blocked";
+      $("mStatus").textContent = "Protected · blocked 1";
+      $("attempt").textContent = "⛔ connection refused: this address is blocked";
     });
-    at(tBlock + 1.0, function(){
-      logln("act", 'Firewall rule added — 203.0.113.45 denied · further requests slowed (tarpit)');
-      $("attempt").textContent = '⛔ connection refused — this address is blocked';
-    });
-    at(tBlock + 1.9, function(){
-      logln("ok", 'POST /login from 203.0.113.45 → <b>refused</b> (tarpit +4000ms)');
-    });
-    at(tBlock + 2.7, function(){
-      logln("ok", 'POST /login from 203.0.113.45 → <b>refused</b> (tarpit +8000ms)');
-    });
+    at(tBlock + 0.9, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +4 s)'); });
+    at(tBlock + 1.7, function(){ logln("ok", 'Sign-in from 203.0.113.45 <b>refused</b> (slowed +8 s)'); });
 
-    // --- RESOLVE ---
-    var tDone = tBlock + 3.8;
-    at(tDone, function(){
-      stepOn("resolve");
-      setGauge(14, "var(--accent)");
-      setState("calm","RESOLVED — SECURE");
-      logln("act", '<b>SentrAI:</b> attacker locked out — incident resolved, evidence saved');
-      $("incident").className = "incident show sev-done";
-      $("sev").className = "sev done"; $("sev").textContent = "RESOLVED";
-      $("inctitle").textContent = "Password-guessing attack stopped";
-      $("incwhen").textContent = "resolved · ~18s";
-      $("incbody").innerHTML =
-        '<span class="plain">SentrAI blocked the attacker before any password worked. The admin account was ' +
-        'never broken into.</span>' +
-        '<ul>' +
-        '<li><b>Detected:</b> 16 failed admin logins from 203.0.113.45.</li>' +
-        '<li><b>Did:</b> blocked the address on this machine and slowed every retry.</li>' +
-        '<li><b>Result:</b> account safe · owner notified · tamper-proof record kept.</li>' +
-        '</ul>';
-      $("incact").innerHTML =
-        '<span class="b auto">✓ Resolved</span>' +
-        '<span class="b">📄 View evidence report</span>';
-      $("guardtext").textContent = "Protected";
-      $("site").className = "site";
+    // Suggested fix appears; owner only has to keep or undo
+    var tFix = tBlock + 2.5;
+    at(tFix, function(){
+      setRisk(22);
+      $("watching").hidden = true; $("fix").hidden = false;
+      $("site").className = "site"; $("chipText").textContent = "Protected";
+      $("lead").textContent = "SentrAI blocked the attacker. Check the suggested fix.";
+      logln("act", '<b>SentrAI:</b> admin account never broken into · record saved');
     });
-    at(tDone + 0.8, function(){
-      logln("ok", 'Normal sign-in — staff member 192.0.2.10 ✓  (service never went down)');
-    });
-    at(tDone + 1.6, function(){
+    at(tFix + 0.8, function(){ logln("ok", 'Normal sign-in · staff member 192.0.2.10 (website never went down)'); });
+    at(tFix + 1.4, function(){
       running = false;
-      $("launch").disabled = false;
-      $("launch").innerHTML = '<span class="ico">▶</span>Replay attack';
+      $("launch").disabled = false; $("launch").textContent = "▶ Replay attack";
       $("reset").hidden = false;
-      $("hint").textContent = "Done — SentrAI detected, explained, blocked and resolved the attack on its own.";
+      $("hint").textContent = "Done. Press Keep the block, or Talk to Sentry to ask about it.";
     });
   }
+
+  $("keep").addEventListener("click", function(){
+    $("fixActs").hidden = true; $("fixDone").hidden = false;
+    $("fixDone").textContent = "✓ Block kept. This risk is closed.";
+    setCard("low", "Resolved"); setSev(null); setRisk(8);
+    $("lead").textContent = "Nothing needs you right now.";
+    logln("act", 'Owner kept the block · risk closed');
+  });
+  $("undo").addEventListener("click", function(){
+    $("fixActs").hidden = true; $("fixDone").hidden = false;
+    $("fixDone").textContent = "Block removed. SentrAI keeps watching this address and blocks it again if it comes back.";
+    setCard("low", "Resolved · Block Removed"); setSev(null); setRisk(8);
+    $("lead").textContent = "Nothing needs you right now.";
+    logln("ok", 'Owner removed the block on 203.0.113.45');
+  });
+
+  /* ---------- Talk to Sentry (scripted answers) ---------- */
+  var ANSWERS = {
+    "Is my website safe?": "Yes. The person guessing never got in, and your website stayed up the whole time. They are blocked for 2 hours, so they cannot keep trying.",
+    "Should I keep the block?": "Yes, keep it. Real staff don't type 16 wrong passwords in a few seconds. If it turns out to be someone you know, you can undo it in one click.",
+    "What should I tell my staff?": "Ask whoever uses the admin account to change its password today, and pick one that is long and not used anywhere else. Nothing else needs doing.",
+    "Who did this?": "I can't say who it is, only where it came from: 203.0.113.45. SentrAI never attacks back. It only shuts the door on your side."
+  };
+  function bubble(kind, text){
+    var b = document.createElement("div");
+    b.className = "bub " + kind; b.textContent = text;
+    $("msgs").appendChild(b); $("msgs").scrollTop = $("msgs").scrollHeight;
+  }
+  function reply(q){
+    bubble("me", q);
+    var a = ANSWERS[q] || "In this demo I can only answer the questions above. In the real panel, ask me anything about this risk and I answer in plain words.";
+    setTimeout(function(){ bubble("bot", a); }, 450);
+  }
+  function openDrawer(){
+    if (!$("msgs").children.length) {
+      bubble("bot", "Hi, I'm Sentry. Someone kept guessing the password for your admin account. SentrAI blocked them before they got in. What would you like to know?");
+      Object.keys(ANSWERS).forEach(function(q){
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "btn"; b.textContent = q;
+        b.addEventListener("click", function(){ reply(q); });
+        $("quick").appendChild(b);
+      });
+    }
+    $("drawer").classList.add("open"); $("askInput").focus();
+  }
+  function closeDrawer(){
+    $("drawer").classList.remove("open");
+  }
+  $("talk").addEventListener("click", openDrawer);
+  $("closeDrawer").addEventListener("click", closeDrawer);
+  $("askForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var q = $("askInput").value.trim(); if (!q) return;
+    $("askInput").value = ""; reply(q);
+  });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeDrawer(); });
 
   $("launch").addEventListener("click", run);
   $("reset").addEventListener("click", reset);

@@ -4,14 +4,22 @@ A single self-contained page for the hackathon demo. Open `index.html` in any
 browser (no server, no install, works offline) and press **Launch simulated
 attack**.
 
-It plays one workflow end to end on a fictional school portal:
+It plays one workflow end to end on a fictional school portal, inside a copy of
+the SentrAI panel as it looks today (Command Center, side menu, Light Mode and
+Dark Mode):
 
-1. **Detect** — a password-guessing burst hits the admin login from one address.
-2. **Explain** — SentrAI describes the risk in plain words for the owner.
-3. **Block** — risk crosses the machine's threshold; SentrAI blocks the
-   attacker and slows (tarpits) every retry.
-4. **Resolve** — the attacker is locked out, the incident is closed and the
-   record is saved. The site never went down.
+1. **Spot** — a password-guessing burst hits the admin login from one address.
+   A **Brute Force** risk card appears with *What happened* and *What it means*.
+2. **Block** — risk passes 80 and SentrAI blocks the attacker on its own
+   (there is no Auto Mode switch: SentrAI always acts) and slows every retry.
+3. **Suggested fix** — the card shows the vetted fix wording, with
+   *Keep the block* / *Undo the block*. The site never went down.
+4. **Talk to Sentry** — the button on the card opens a chat with scripted,
+   plain-word answers about this risk.
+
+The side menu hides with the button inside it, and the feedback form at its
+bottom is a demo stub (nothing is sent). The theme and menu choice are
+remembered in the browser.
 
 ## It is a simulation
 
