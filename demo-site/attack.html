@@ -37,12 +37,12 @@
 <body>
 <div class="wrap">
   <h1><span class="skull">☠</span> Simulated Attacker</h1>
-  <p class="sub">Press the button to "attack" the school website. Watch the SentrAI window catch it.</p>
+  <p class="sub">Press the button to "attack" the school website. Watch it show up in the SentrAI panel, and block it from there.</p>
 
   <div class="bar">
     <button class="go" id="go">▶ Launch simulated attack</button>
     <button id="reset">Reset</button>
-    <a class="btn" href="index.html" target="sentrai-panel">Open the SentrAI window ↗</a>
+    <a class="btn" href="https://rexguard.github.io/SentrAI/demo-copy/#/command" target="sentrai-panel">Open the SentrAI panel ↗</a>
     <span class="link" id="link"><i></i><span id="linkText">Looking for the SentrAI window…</span></span>
   </div>
 
@@ -52,7 +52,8 @@
   </div>
 
   <p class="note"><b>This is a simulation.</b> This page attacks nothing and sends no network traffic. It only tells the
-    SentrAI demo window, open in this same browser, to play the scripted attack, and shows the attacker's side of it.
+    SentrAI panel (the demo copy, open in this same browser) to play the scripted attack, and shows the attacker's side
+    of it.
     Addresses are documentation-only (RFC&nbsp;5737).</p>
 </div>
 
@@ -83,7 +84,7 @@
   function setLinked(on){
     linked = on;
     $("link").classList.toggle("on", on);
-    $("linkText").textContent = on ? "Connected to the SentrAI window" : "SentrAI window not found: open it in this browser first";
+    $("linkText").textContent = on ? "Connected to the SentrAI panel" : "SentrAI panel not found: open it in this browser first";
   }
   function onMsg(m){
     if (!m || !m.type || seen[m.id]) return;
@@ -95,11 +96,18 @@
       line("dim", "[*] starting password guessing on /login …");
     }
     if (m.type === "attempt") line("bad", "[-] try " + ("0" + m.n).slice(-2) + "  admin:" + m.pw + "  → 401 wrong password");
-    if (m.type === "blocked") { line("warn", "[!] connection refused: our address 203.0.113.45 is blocked"); }
+    if (m.type === "blocked") { line("warn", m.by === "manager"
+      ? "[!] connection refused: the site owner blocked 203.0.113.45 from the SentrAI panel"
+      : "[!] connection refused: our address 203.0.113.45 is blocked"); }
     if (m.type === "refused") line("warn", "[!] retry → refused (slowed down " + m.wait + " s)");
     if (m.type === "done") {
-      line("bad", "[x] giving up: target is guarded. 16 tries, 0 passwords found.");
-      line("dim", "# SentrAI blocked us on its side only. It never hit back.");
+      var n = m.tries || 16;
+      if (m.by === "nobody") {
+        line("dim", "# The site owner closed it as not a threat. (" + n + " tries so far.)");
+      } else {
+        line("bad", "[x] giving up: target is guarded. " + n + " tries, 0 passwords found.");
+        line("dim", m.by === "manager" ? "# Blocked by the owner in one click. SentrAI never hit back." : "# SentrAI blocked us on its side only. It never hit back.");
+      }
       $("go").disabled = false; $("go").textContent = "▶ Launch again";
     }
     if (m.type === "reset-done" && !$("go").disabled) idle();
@@ -112,7 +120,7 @@
 
   function ping(){ setLinked(false); send({ type: "hello" }); }
   $("go").addEventListener("click", function(){
-    if (!linked) { ping(); line("warn", "[!] Open the SentrAI window in this browser first, then press Launch again."); return; }
+    if (!linked) { ping(); line("warn", "[!] Open the SentrAI panel in this browser first, then press Launch again."); return; }
     send({ type: "launch" });
   });
   $("reset").addEventListener("click", function(){ send({ type: "reset" }); $("go").disabled = false; $("go").textContent = "▶ Launch simulated attack"; idle(); });
