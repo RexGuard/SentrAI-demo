@@ -24,6 +24,12 @@ The side menu hides with the button inside it. **Contact Us** at its bottom and
 covers the whole page; both are demo stubs (nothing is sent or saved). The
 theme and menu choice are remembered in the browser.
 
+## Online link
+
+With GitHub Pages switched on for this repo (Settings > Pages > Deploy from a
+branch, `main`, `/ (root)`), the page is at
+https://rexguard.github.io/SentrAI-demo/ (which opens `demo-site/`).
+
 ## It is a simulation
 
 Nothing is really attacked. The page replays a scripted workflow using
