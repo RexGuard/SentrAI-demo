@@ -24,11 +24,22 @@ The side menu hides with the button inside it. **Contact Us** at its bottom and
 covers the whole page; both are demo stubs (nothing is sent or saved). The
 theme and menu choice are remembered in the browser.
 
+## Two-window mode (attacker + SentrAI)
+
+`attack.html` is the attacker's side. Open the SentrAI page (`index.html`) and
+then `attack.html` in the **same browser** (two windows, or one on the
+projector). Pressing **Launch simulated attack** on the attacker page plays
+the attack in the SentrAI window, and the attacker terminal shows its tries
+being refused. The SentrAI page also has an **Open attacker window** button.
+The two pages talk through the browser only (BroadcastChannel, with a
+localStorage fallback); nothing goes over the network.
+
 ## Online link
 
 With GitHub Pages switched on for this repo (Settings > Pages > Deploy from a
 branch, `main`, `/ (root)`), the page is at
-https://rexguard.github.io/SentrAI-demo/ (which opens `demo-site/`).
+https://rexguard.github.io/SentrAI-demo/ (which opens `demo-site/`), and the
+attacker page is at https://rexguard.github.io/SentrAI-demo/demo-site/attack.html.
 
 ## It is a simulation
 

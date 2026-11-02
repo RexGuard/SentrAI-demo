@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulated Attacker · SentrAI Demo</title>
+<meta name="description" content="The attacker side of the SentrAI one-button demo. It only tells the SentrAI demo window in the same browser to play the attack; it sends no network traffic.">
+<style>
+  :root { --bg:#0b0d10; --panel:#11151a; --line:#232a33; --ink:#d7e0ea; --muted:#8a97a6; --faint:#5d6977;
+    --red:#ff5c6c; --green:#3ddc84; --amber:#ffb547; --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; }
+  body { background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,-apple-system,sans-serif; min-height:100vh; }
+  .wrap { max-width:860px; margin:0 auto; padding:24px 16px 40px; }
+  h1 { font-size:24px; margin:0; display:flex; align-items:center; gap:10px; }
+  h1 .skull { font-size:26px; }
+  .sub { color:var(--muted); margin:4px 0 18px; font-size:14px; }
+  .bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  button, a.btn { appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:10px;
+    padding:10px 16px; font:inherit; font-size:14px; cursor:pointer; text-decoration:none; }
+  button.go { background:#c3263a; border-color:#c3263a; color:#fff; font-weight:700; font-size:15.5px; padding:13px 22px;
+    box-shadow:0 10px 26px rgba(195,38,58,.35); }
+  button:disabled { opacity:.55; cursor:default; box-shadow:none; }
+  .link { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+  .link i { width:9px; height:9px; border-radius:50%; background:var(--faint); }
+  .link.on i { background:var(--green); box-shadow:0 0 8px var(--green); }
+  .term { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .term .th { display:flex; gap:6px; padding:10px 12px; border-bottom:1px solid var(--line); align-items:center; }
+  .term .th span { width:11px; height:11px; border-radius:50%; background:#3a424d; }
+  .term .th b { margin-left:8px; font-weight:500; font-size:12.5px; color:var(--muted); font-family:var(--mono); }
+  .out { font-family:var(--mono); font-size:13px; line-height:1.6; padding:14px 16px; height:min(460px, 60vh); overflow:auto; white-space:pre-wrap; }
+  .out .p { color:var(--green); } .out .bad { color:var(--red); } .out .warn { color:var(--amber); } .out .dim { color:var(--faint); }
+  .note { margin-top:14px; color:var(--faint); font-size:12.5px; border:1px dashed var(--line); border-radius:10px; padding:10px 12px; }
+  .note b { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="skull">☠</span> Simulated Attacker</h1>
+  <p class="sub">Press the button to "attack" the school website. Watch the SentrAI window catch it.</p>
+
+  <div class="bar">
+    <button class="go" id="go">▶ Launch simulated attack</button>
+    <button id="reset">Reset</button>
+    <a class="btn" href="index.html" target="sentrai-panel">Open the SentrAI window ↗</a>
+    <span class="link" id="link"><i></i><span id="linkText">Looking for the SentrAI window…</span></span>
+  </div>
+
+  <div class="term">
+    <div class="th"><span></span><span></span><span></span><b>attacker@203.0.113.45 ~</b></div>
+    <div class="out" id="out"></div>
+  </div>
+
+  <p class="note"><b>This is a simulation.</b> This page attacks nothing and sends no network traffic. It only tells the
+    SentrAI demo window, open in this same browser, to play the scripted attack, and shows the attacker's side of it.
+    Addresses are documentation-only (RFC&nbsp;5737).</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var out = $("out"), linked = false, pingTimer = null;
+
+  function line(cls, text){
+    var d = document.createElement("div"); d.className = cls || ""; d.textContent = text;
+    out.appendChild(d); out.scrollTop = out.scrollHeight;
+  }
+  function idle(){
+    out.innerHTML = "";
+    line("dim", "# Target: Aegis Academy Student Portal (aegis-web), account 'admin'");
+    line("dim", "# Ready. Press Launch simulated attack.");
+  }
+
+  // Same channel as the SentrAI window (index.html)
+  var bc = null, seen = {};
+  try { bc = new BroadcastChannel("sentrai-demo"); } catch(e) {}
+  function send(msg){
+    msg.id = Date.now() + "-" + Math.random();
+    if (bc) { try { bc.postMessage(msg); } catch(e) {} }
+    try { localStorage.setItem("sentrai-demo-msg", JSON.stringify(msg)); } catch(e) {}
+  }
+  function setLinked(on){
+    linked = on;
+    $("link").classList.toggle("on", on);
+    $("linkText").textContent = on ? "Connected to the SentrAI window" : "SentrAI window not found: open it in this browser first";
+  }
+  function onMsg(m){
+    if (!m || !m.type || seen[m.id]) return;
+    seen[m.id] = 1;
+    if (m.type === "here") { setLinked(true); $("go").disabled = !!m.running; }
+    if (m.type === "started") {
+      setLinked(true); $("go").disabled = true; out.innerHTML = "";
+      line("p", "$ guess-passwords --target aegis-web --user admin --wordlist common.txt");
+      line("dim", "[*] starting password guessing on /login …");
+    }
+    if (m.type === "attempt") line("bad", "[-] try " + ("0" + m.n).slice(-2) + "  admin:" + m.pw + "  → 401 wrong password");
+    if (m.type === "blocked") { line("warn", "[!] connection refused: our address 203.0.113.45 is blocked"); }
+    if (m.type === "refused") line("warn", "[!] retry → refused (slowed down " + m.wait + " s)");
+    if (m.type === "done") {
+      line("bad", "[x] giving up: target is guarded. 16 tries, 0 passwords found.");
+      line("dim", "# SentrAI blocked us on its side only. It never hit back.");
+      $("go").disabled = false; $("go").textContent = "▶ Launch again";
+    }
+    if (m.type === "reset-done" && !$("go").disabled) idle();
+  }
+  if (bc) bc.onmessage = function(e){ onMsg(e.data); };
+  window.addEventListener("storage", function(e){
+    if (e.key !== "sentrai-demo-msg" || !e.newValue) return;
+    try { onMsg(JSON.parse(e.newValue)); } catch(err) {}
+  });
+
+  function ping(){ setLinked(false); send({ type: "hello" }); }
+  $("go").addEventListener("click", function(){
+    if (!linked) { ping(); line("warn", "[!] Open the SentrAI window in this browser first, then press Launch again."); return; }
+    send({ type: "launch" });
+  });
+  $("reset").addEventListener("click", function(){ send({ type: "reset" }); $("go").disabled = false; $("go").textContent = "▶ Launch simulated attack"; idle(); });
+
+  idle();
+  ping();
+  pingTimer = setInterval(function(){ if (!linked) send({ type: "hello" }); }, 2000);
+})();
+</script>
+</body>
+</html>
