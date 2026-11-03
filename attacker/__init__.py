@@ -1,4 +1,4 @@
-"""An AI plays the intruder against the demo portal, so judges watch SentrAI catch it.
+"""An AI plays the intruder against the demo portal, so viewers watch SentrAI catch it.
 
 A local model is handed a few tools, each of which can only touch the fake Aegis portal on this
 machine (attacker/tools.py). The model decides what to try; every request still carries a made-up

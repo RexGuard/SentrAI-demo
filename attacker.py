@@ -1,4 +1,4 @@
-"""Point a local AI model at the demo portal as the intruder, so judges watch SentrAI catch it.
+"""Point a local AI model at the demo portal as the intruder, so viewers watch SentrAI catch it.
 
 The portal, the SentrAI panel and this AI attacker can each be on their own machine (the
 three-machine demo). This script only needs to reach the portal's web address; it never touches the

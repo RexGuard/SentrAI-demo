@@ -1,7 +1,7 @@
 # SentrAI demo lab
 
 A safe place to watch [SentrAI](https://github.com/RexGuard/SentrAI) catch attacks. This repo holds only
-the demo: a fake school portal, harmless test attacks against it, a page of buttons for judges, and a
+the demo: a fake school portal, harmless test attacks against it, a page of attack buttons for visitors, and a
 no-install browser demo. SentrAI itself is never copied in here; the scripts check out the real product
 from its own repo, so the product repo stays free of fake attacks.
 
@@ -9,7 +9,7 @@ from its own repo, so the product repo stays free of fake attacks.
 | --- | --- | --- |
 | See one attack stopped in 2 minutes, on one or two devices | [Browser demo](#browser-demo-nothing-to-install) | a browser |
 | Run real SentrAI against real (harmless) attacks | [Live lab](#live-lab) | Python 3.10+ and Git |
-| Let a local AI model play the intruder, on stage | [The AI intruder](#the-ai-intruder-three-separate-machines) | three machines and a local model |
+| Let a local AI model play the intruder, live in front of an audience | [The AI intruder](#the-ai-intruder-three-separate-machines) | three machines and a local model |
 
 ## Browser demo (nothing to install)
 
@@ -98,12 +98,12 @@ from this folder. Blocks last 2 hours (SentrAI's default); `--fresh` clears them
 
 ## The AI intruder (three separate machines)
 
-For the stage version: a **local, unrestricted AI model plays the intruder** against the website, with
+For a live showcase: a **local, unrestricted AI model plays the intruder** against the website, with
 SentrAI guarding it. Three machines, each on its own:
 
 | Machine | Runs | Start it with |
 |---|---|---|
-| 1. **SentrAI panel** | The SentrAI panel and its dashboard (judges watch this) | `./demo.sh --panel-only --attacker-ip ATTACKER-IP` |
+| 1. **SentrAI panel** | The SentrAI panel and its dashboard (the audience watches this) | `./demo.sh --panel-only --attacker-ip ATTACKER-IP` |
 | 2. **Website** (the gateway) | The Aegis portal + SentrAI's agent, open to the network | the line machine 1 prints: `./demo.sh --panel http://PANEL-IP:8000 --allow-http --code CODE --listen` |
 | 3. **AI attacker** | The local model and `attacker.py` | `python attacker.py --portal http://WEBSITE-IP:5000` |
 
@@ -124,7 +124,7 @@ starts, the attacker checks that the address answers as *this* demo portal (a ma
 private/lab address; anything else is refused. So even an "unrestricted" model can only poke our own lab
 portal, and one that tries other tools just gets "no such tool".
 
-**What judges see.** On the panel: incidents open as the AI guesses passwords, injects the search box and
+**What the audience sees.** On the panel: incidents open as the AI guesses passwords, injects the search box and
 tries the admin endpoint; the machine's risk climbs past its threshold; SentrAI blocks the attacker's address.
 On the attacker's terminal: its moves turn into `HTTP 403 [BLOCKED by SentrAI]`, and the model says so in its
 after-action summary.

@@ -156,7 +156,7 @@ if [ -z "$PANEL" ]; then
         # Makes the panel's settings file (so SentrAI's first-run questions are skipped) and the
         # dashboard's first sign-in (a one-time Owner setup code, or a password on older SentrAI),
         # kept here because it is shown only once.
-        "$PY_KIT" "$(config_script)" admin --email judge@sentrai-demo.local > "$STATE/panel/sign-in.txt"
+        "$PY_KIT" "$(config_script)" admin --email demo@sentrai-demo.local > "$STATE/panel/sign-in.txt"
     fi
     BIND=()
     if [ "$PANEL_ONLY" = 1 ]; then
