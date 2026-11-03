@@ -3,7 +3,7 @@
 A deliberately small, FICTIONAL student portal (Flask, 127.0.0.1:5000). It writes
 realistic-looking JSON-lines logs that the SentrAI agent on this machine ships to the
 central panel, and it refuses the addresses that agent has blocked. ``/lab`` has the
-test-attack buttons for judges. Nothing here is a real system and no user input is
+test-attack buttons for visitors. Nothing here is a real system and no user input is
 ever executed as a command.
 """
 from __future__ import annotations
@@ -76,7 +76,7 @@ def create_app(start_polling: bool = False,
     @app.before_request
     def _enforce_blocklist():
         if request.path == "/lab" or request.path.startswith("/lab/"):
-            return None  # the judges' control page is never blocked or logged
+            return None  # the demo's control page is never blocked or logged
         ip = client_ip()
         # Tarpit: slow down decoy pages and anyone who already touched a tripwire.
         if spines_on and (request.path == spines.HONEYPOT_PATH or tarpit.is_pricked(ip)):

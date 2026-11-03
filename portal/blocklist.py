@@ -2,7 +2,7 @@
 
 The panel decides; the agent fetches this machine's block list and keeps it in its own file
 (``blocked`` in agent.json), whether it is also writing firewall rules or only in dry run. The
-portal reads that file every 2 seconds, so a judge sees the block land on the attacked machine
+portal reads that file every 2 seconds, so a viewer sees the block land on the attacked machine
 itself. If the file is missing or unreadable the portal *fails open*: a broken demo never locks
 out normal traffic.
 """

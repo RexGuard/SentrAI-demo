@@ -1,6 +1,6 @@
 # SentrAI one-button demo site
 
-A single self-contained page for the hackathon demo. Open `index.html` in any
+A single self-contained page for the SentrAI demo. Open `index.html` in any
 browser (no server, no install, works offline) and press **Launch simulated
 attack**.
 

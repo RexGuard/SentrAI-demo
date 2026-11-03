@@ -1,4 +1,4 @@
-"""``/lab``: the test-attack buttons for judges.
+"""``/lab``: the test-attack buttons for visitors.
 
 Each button runs one of this kit's attack scripts (``attacks/``) in a separate process, against
 this portal only (the scripts refuse any host but localhost:5000). The page shows the script's
