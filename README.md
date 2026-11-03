@@ -1,9 +1,34 @@
 # SentrAI demo lab
 
-A safe place to watch [SentrAI](https://github.com/RexGuard/SentrAI) catch attacks live. This repo
-holds only the demo: a fake student portal, harmless test attacks against it, and a page of buttons
-for judges. SentrAI itself is never copied in here; the scripts check out the real product from its
-own repo, so the product repo stays free of fake attacks.
+A safe place to watch [SentrAI](https://github.com/RexGuard/SentrAI) catch attacks. This repo holds only
+the demo: a fake school portal, harmless test attacks against it, a page of buttons for judges, and a
+no-install browser demo. SentrAI itself is never copied in here; the scripts check out the real product
+from its own repo, so the product repo stays free of fake attacks.
+
+| You want to | Use | Needs |
+| --- | --- | --- |
+| See one attack stopped in 2 minutes, on one or two devices | [Browser demo](#browser-demo-nothing-to-install) | a browser |
+| Run real SentrAI against real (harmless) attacks | [Live lab](#live-lab) | Python 3.10+ and Git |
+| Let a local AI model play the intruder, on stage | [The AI intruder](#the-ai-intruder-three-separate-machines) | three machines and a local model |
+
+## Browser demo (nothing to install)
+
+1. Open the **panel**, a copy of the real SentrAI Cybersecurity Control Panel with made-up data:
+   <https://rexguard.github.io/SentrAI/demo-copy/#/command>
+2. Open the **attacker page** in another tab, or on a second device such as a phone:
+   <https://rexguard.github.io/SentrAI-demo/demo-site/attack.html>.
+   Wait for **Connected to the SentrAI panel** (up to 5 seconds across devices).
+3. Press **Launch simulated attack**. A Critical **Brute Force** risk appears in the Command Center.
+4. Open it and press **Do the suggested fix**. The attacker's terminal shows it being blocked and giving up.
+   **Talk to Sentry about this** asks the chat assistant about it.
+
+Across devices the pages pass a few small messages through the public ntfy.sh relay, in room `solid10` unless
+you type another on the attacker page. Nothing is really attacked. Details:
+[`demo-site/README.md`](demo-site/README.md).
+
+## Live lab
+
+Real SentrAI, a fake portal and real (contained) attacks, all on one computer:
 
 ```
 fake portal :5000  --logs-->   SentrAI agent  --logs-->    SentrAI panel
@@ -15,7 +40,7 @@ fake portal :5000  --logs-->   SentrAI agent  --logs-->    SentrAI panel
 3. The panel scores the machine, opens incidents and decides on a block.
 4. The agent picks the block up, and the portal starts showing that attacker the "Blocked by SentrAI" page.
 
-## Start it
+### Start it
 
 Needs Python 3.10+ and git.
 
@@ -35,7 +60,11 @@ Needs Python 3.10+ and git.
 
 The first run prints a **dashboard setup code**. Open the dashboard (http://127.0.0.1:8501), create
 the Owner account with it, and add the authenticator app it asks for. After that, sign in with that
-account. Then open http://127.0.0.1:5000/lab next to the dashboard.
+account. Then open http://127.0.0.1:5000/lab next to the dashboard and press **Full story**.
+
+Prefer the new web dashboard? With the lab running and Node.js 20+ installed, run
+`.demo/SentrAI/mvp/web/run-web.sh` (Windows: `.\.demo\SentrAI\mvp\web\run-web.ps1`) and open
+http://127.0.0.1:5173 with the same account.
 
 | Option (sh / ps1) | What it does |
 |---|---|
@@ -57,7 +86,7 @@ documentation ranges (192.0.2.x, 198.51.100.x, 203.0.113.x), and never run a com
 | Button | Script | What the panel shows |
 |---|---|---|
 | Normal staff traffic | `python -m attacks.benign` | Stays green |
-| Password guessing | `python -m attacks.brute_force` | Brute-force incident from 203.0.113.45. On its own it stays under the threshold, so a person approves the block (Approvals page) |
+| Password guessing | `python -m attacks.brute_force` | Brute-force incident from 203.0.113.45. On its own it stays under the threshold, so a person approves the block on the dashboard |
 | SQL injection | `python -m attacks.sqli` | SQL-injection incident from 198.51.100.23 |
 | Web shell (simulated) | `python -m attacks.shell` | Critical privilege-escalation incident from 198.51.100.77, waiting for a person on its own; after SQL injection it tips the machine over (see Full story) |
 | Bulk data export | `python -m attacks.exfil` | Critical data-exfiltration incident; blocked on its own |
@@ -110,7 +139,8 @@ the "Full story" button needs no model at all.
 
 ## Two computers (panel and lab apart)
 
-On the panel's computer, run SentrAI normally and make a join code on its **Machines** page. On the lab
+On the panel's computer, run SentrAI normally and make a join code on its **Computers** page (the SentrAI team can also run
+`sudo sentrai machines join-code --name aegis-web` on the panel). On the lab
 computer:
 
 ```bash
@@ -136,6 +166,7 @@ attacker.py, attacker/ the AI intruder (its five moves, its brief, the model loo
 portal/                the fake Aegis Academy portal (Flask), its /lab page and tripwires
 attacks/               the test attacks (localhost only)
 scenario.py            the full story
+demo-site/             the no-install browser demo (index.html) and the attacker page (attack.html)
 seed/                  the portal's admin password and how many fake members to make
 tests/                 pytest; test_sentrai_contract.py checks the portal's logs against SentrAI's
                        own collector when a SentrAI checkout is in .demo/SentrAI or SENTRAI_DIR
