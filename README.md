@@ -63,7 +63,7 @@ the Owner account with it, and add the authenticator app it asks for. After that
 account. Then open http://127.0.0.1:5000/lab next to the dashboard and press **Full story**.
 
 Prefer the new web dashboard? With the lab running and Node.js 20+ installed, run
-`.demo/SentrAI/mvp/web/run-web.sh` (Windows: `.\.demo\SentrAI\mvp\web\run-web.ps1`) and open
+`.demo/SentrAI/app/web/run-web.sh` (Windows: `.\.demo\SentrAI\app\web\run-web.ps1`) and open
 http://127.0.0.1:5173 with the same account.
 
 | Option (sh / ps1) | What it does |

@@ -1,6 +1,6 @@
 """Starts SentrAI's agent for the demo portal: ``python agent_run.py <SentrAI dir> join|run|status ...``.
 
-The agent itself is SentrAI's (``mvp/lab/agent``); this only finds it in the given checkout and,
+The agent itself is SentrAI's (``app/lab/agent``); this only finds it in the given checkout and,
 for ``run``, names the portal's log lines after the machine the agent joined as. Older SentrAI
 versions sealed them as ``web-01`` while the panel stamped the joined name, which read as a
 false "log tampering" alert (fixed in SentrAI PR #73); setting the name here keeps the demo
@@ -17,7 +17,10 @@ def main() -> int:
     if len(sys.argv) < 3:
         print(__doc__)
         return 2
-    lab = Path(sys.argv[1]).resolve() / "mvp" / "lab"
+    root = Path(sys.argv[1]).resolve()
+    lab = root / "app" / "lab"
+    if not lab.is_dir():
+        lab = root / "mvp" / "lab"  # SentrAI checkouts before Nov 2026
     if not (lab / "agent" / "agent.py").is_file():
         print(f"no SentrAI agent in {lab} (is this a SentrAI checkout from after the central panel?)", file=sys.stderr)
         return 2

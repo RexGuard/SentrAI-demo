@@ -97,9 +97,10 @@ if [ -z "$SENTRAI" ]; then
     fi
 fi
 SENTRAI="$(cd "$SENTRAI" && pwd)"
-MVP="$SENTRAI/mvp"
+MVP="$SENTRAI/app"  # SentrAI's code; checkouts before Nov 2026 keep it in mvp/
+[ -d "$MVP" ] || MVP="$SENTRAI/mvp"
 echo "$SENTRAI" > "$STATE/sentrai-dir"
-[ -f "$MVP/lab/agent/agent.py" ] || { echo "$SENTRAI has no machine agent (mvp/lab/agent): use a newer SentrAI." >&2; exit 1; }
+[ -f "$MVP/lab/agent/agent.py" ] || { echo "$SENTRAI has no machine agent (app/lab/agent): use a newer SentrAI." >&2; exit 1; }
 
 # 2. The portal's own Python packages.
 if [ ! -x "$STATE/venv/bin/python" ]; then
@@ -250,7 +251,7 @@ if [ -f "$STATE/panel/started" ] && [[ " ${RUN_FLAGS[*]-} " != *" --no-dashboard
     echo "  Panel dashboard: http://127.0.0.1:$(getenv DASHBOARD_PORT 8501)"
     sed 's/^ */  /' "$STATE/panel/sign-in.txt"
     echo "  (shown on every start; once the Owner account exists, sign in with it. If the code ran out:"
-    echo "   SENTRAI_CONFIG=.demo/panel/config.json python3 .demo/SentrAI/mvp/sentrai_config.py admin)"
+    echo "   SENTRAI_CONFIG=.demo/panel/config.json python3 $MVP/sentrai_config.py admin)"
 elif [ -f "$STATE/panel/started" ]; then
     echo "  Panel:           $PANEL  (started without its dashboard)"
 else

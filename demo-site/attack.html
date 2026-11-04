@@ -83,7 +83,7 @@
   // Same channel as the SentrAI window (index.html)
   var bc = null, seen = {};
   try { bc = new BroadcastChannel("sentrai-demo"); } catch(e) {}
-  // Cross-device relay (same as the panel, see mvp/web/app/src/lib/demo.ts): a public ntfy.sh topic per room.
+  // Cross-device relay (same as the panel, see app/web/app/src/lib/demo.ts): a public ntfy.sh topic per room.
   var RELAY = "https://ntfy.sh/", PANEL = "https://rexguard.github.io/SentrAI/demo-copy/", es = null, topic = "";
   function clean(v){ return String(v || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32); }
   function startRelay(room){
