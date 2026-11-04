@@ -49,7 +49,7 @@ def agent_file() -> Path:
     return Path(value) if value else STATE_DIR / "agent.json"
 
 
-# Log file names: the same ones SentrAI's collector looks for (mvp/lab/collector/paths.py).
+# Log file names: the same ones SentrAI's collector looks for (app/lab/collector/paths.py).
 ACCESS_LOG = envvars.get("LOG_ACCESS", "access.jsonl")
 AUTH_LOG = envvars.get("LOG_AUTH", "auth.jsonl")
 DB_LOG = envvars.get("LOG_DB", "db.jsonl")

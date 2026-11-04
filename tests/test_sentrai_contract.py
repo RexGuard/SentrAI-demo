@@ -16,9 +16,12 @@ from portal import create_app, paths, spines
 
 KIT_DIR = Path(__file__).resolve().parents[1]
 SENTRAI = Path(os.environ.get("SENTRAI_DIR") or KIT_DIR / ".demo" / "SentrAI")
-if not (SENTRAI / "mvp" / "lab" / "collector").is_dir():
+LAB = SENTRAI / "app" / "lab"
+if not LAB.is_dir():
+    LAB = SENTRAI / "mvp" / "lab"  # SentrAI checkouts before Nov 2026
+if not (LAB / "collector").is_dir():
     pytest.skip(f"no SentrAI checkout at {SENTRAI} (set SENTRAI_DIR)", allow_module_level=True)
-sys.path.insert(1, str(SENTRAI / "mvp" / "lab"))
+sys.path.insert(1, str(LAB))
 collector = pytest.importorskip("collector.collector")
 
 ATTACKER = {"X-Demo-Src-IP": "203.0.113.99"}

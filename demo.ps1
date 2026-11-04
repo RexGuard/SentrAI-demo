@@ -145,8 +145,9 @@ try {
         }
     }
     $SentrAI = (Resolve-Path $SentrAI).Path
-    $Mvp = Join-Path $SentrAI "mvp"
-    if (-not (Test-Path (Join-Path $Mvp "lab\agent\agent.py"))) { throw "$SentrAI has no machine agent (mvp\lab\agent): use a newer SentrAI." }
+    $Mvp = Join-Path $SentrAI "app"  # SentrAI's code; checkouts before Nov 2026 keep it in mvp
+    if (-not (Test-Path $Mvp)) { $Mvp = Join-Path $SentrAI "mvp" }
+    if (-not (Test-Path (Join-Path $Mvp "lab\agent\agent.py"))) { throw "$SentrAI has no machine agent (app\lab\agent): use a newer SentrAI." }
     $SentrAI | Set-Content -Encoding utf8 (Join-Path $State "sentrai-dir")
     if (Test-Path (Join-Path $Mvp "sentrai_config.py")) { $script:KitPrefix = "SENTRAI_" }
 
@@ -268,7 +269,7 @@ try {
         Write-Host "  Panel dashboard: http://127.0.0.1:$dport"
         Get-Content (Join-Path $State "panel\sign-in.txt") | ForEach-Object { Write-Host ("  " + $_.Trim()) }
         Write-Host "  (shown on every start; once the Owner account exists, sign in with it. If the code ran out:"
-        Write-Host "   `$env:SENTRAI_CONFIG='.demo\panel\config.json'; .\.demo\venv\Scripts\python.exe .demo\SentrAI\mvp\sentrai_config.py admin)"
+        Write-Host "   `$env:SENTRAI_CONFIG='.demo\panel\config.json'; .\.demo\venv\Scripts\python.exe $(Join-Path $Mvp sentrai_config.py) admin)"
     } elseif (-not (Test-Path (Join-Path $State "panel\started"))) {
         Write-Host "  Panel:           $Panel  (dashboard of the panel's machine)"
     }

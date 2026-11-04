@@ -11,7 +11,8 @@ if [ -f "$STATE/pids" ]; then
     rm -f "$STATE/pids"
 fi
 if [ -f "$STATE/panel/started" ] && [ -f "$STATE/sentrai-dir" ]; then
-    MVP="$(cat "$STATE/sentrai-dir")/mvp"
+    MVP="$(cat "$STATE/sentrai-dir")/app"
+    [ -d "$MVP" ] || MVP="$(cat "$STATE/sentrai-dir")/mvp"
     [ -x "$MVP/stop.sh" ] && "$MVP/stop.sh"
     rm -f "$STATE/panel/started"
 fi

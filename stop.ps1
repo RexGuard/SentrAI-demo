@@ -16,7 +16,9 @@ if (Test-Path $PidFile) {
 $started = Join-Path $State "panel\started"
 $dirFile = Join-Path $State "sentrai-dir"
 if ((Test-Path $started) -and (Test-Path $dirFile)) {
-    $stop = Join-Path (Get-Content $dirFile | Select-Object -First 1).Trim() "mvp\stop.ps1"
+    $dir = (Get-Content $dirFile | Select-Object -First 1).Trim()
+    $stop = Join-Path $dir "app\stop.ps1"
+    if (-not (Test-Path $stop)) { $stop = Join-Path $dir "mvp\stop.ps1" }
     if (Test-Path $stop) { & powershell -NoProfile -ExecutionPolicy Bypass -File $stop }
     Remove-Item -Force $started
 }
